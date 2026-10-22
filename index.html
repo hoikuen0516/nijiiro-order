@@ -36,7 +36,14 @@
         window.firebaseAuth = null;
         window.unsubscribeRoom = null;
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-app';
+        // URLパラメータからのルームID優先読み込み
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomFromUrl = urlParams.get('room');
+        if (roomFromUrl) {
+            localStorage.setItem('active_room_id', roomFromUrl);
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-shared-app';
         window.appId = appId;
 
         // Firebase Config Setup
@@ -62,9 +69,12 @@
                     window.dispatchEvent(new CustomEvent('firebase-ready'));
                 } catch (err) {
                     console.error("Firebase Auth Error:", err);
+                    window.dispatchEvent(new CustomEvent('firebase-error', { detail: err }));
                 }
             };
             initAuth();
+        } else {
+            console.warn("Firebase Config not supplied. Using local fallback.");
         }
 
         // Firebase Sync Helper Functions
@@ -80,6 +90,7 @@
                 return;
             }
 
+            // Public path
             const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`);
 
             window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
@@ -91,6 +102,10 @@
                 onDataReceived(fetchedRecords);
             }, (error) => {
                 console.error("Firestore Snapshot Error:", error);
+                const dot = document.getElementById('syncStatusDot');
+                const text = document.getElementById('syncStatusText');
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-rose-500";
+                if (text) text.textContent = "同期エラー (ローカル表示中)";
                 onDataReceived(getRoomRecords(roomId));
             });
         };
@@ -866,6 +881,30 @@
             `).join('');
         }
 
+        window.confirmDelete = function(recordId) {
+            showModal({
+                title: "明細の削除",
+                body: "<p class='text-center text-slate-600'>この明細を削除してもよろしいですか？</p>",
+                actions: [
+                    { label: "キャンセル", type: "secondary", onClick: closeModal },
+                    {
+                        label: "削除",
+                        type: "danger",
+                        onClick: () => {
+                            if (window.deleteRecordFromCloud) {
+                                window.deleteRecordFromCloud(activeRoomId, recordId);
+                            }
+                            records = records.filter(r => r.id !== recordId);
+                            saveRoomRecords(activeRoomId, records);
+                            closeModal();
+                            renderAll();
+                            showToast("明細を削除しました", "fa-trash-can text-rose-400");
+                        }
+                    }
+                ]
+            });
+        };
+
         // INITIALIZATION
         window.addEventListener('DOMContentLoaded', () => {
             // PNG icon conversion for iOS home screen icon
@@ -958,18 +997,22 @@
             });
 
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
-                const currentUrl = window.location.href;
-                copyTextToClipboard(currentUrl);
+                // ルームIDを含めたURLを共有用に生成
+                const shareUrl = new URL(window.location.href);
+                shareUrl.searchParams.set('room', activeRoomId);
+                const shareUrlString = shareUrl.toString();
+
+                copyTextToClipboard(shareUrlString);
                 
                 showModal({
-                    title: "URL共有",
+                    title: "URL共有（スマホ連携）",
                     body: `
                         <div class="space-y-3 text-center">
-                            <p class="text-xs text-slate-500">URLをコピーしました！</p>
+                            <p class="text-xs text-slate-500">このルーム専用の共有URLをコピーしました！<br>スマホで開くと自動的に同じデータが見られます。</p>
                             <div class="flex justify-center p-3 bg-white rounded-2xl border border-slate-100 shadow-inner">
                                 <div id="qrcodeCanvas"></div>
                             </div>
-                            <input type="text" readonly value="${escapeHtml(currentUrl)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none">
+                            <input type="text" readonly value="${escapeHtml(shareUrlString)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none">
                         </div>
                     `,
                     actions: [
@@ -981,14 +1024,14 @@
                     const qrContainer = document.getElementById('qrcodeCanvas');
                     if (qrContainer && typeof QRCode !== 'undefined') {
                         new QRCode(qrContainer, {
-                            text: currentUrl,
+                            text: shareUrlString,
                             width: 150,
                             height: 150
                         });
                     }
                 }, 50);
 
-                showToast("URLをコピーしました！", "fa-share-nodes text-blue-400");
+                showToast("共有URLをコピーしました！", "fa-share-nodes text-blue-400");
             });
 
             document.getElementById('changeRoomBtn').addEventListener('click', openRoomSelectModal);
@@ -1071,31 +1114,12 @@
                 if (text) text.textContent = "リアルタイム同期中";
                 loadRoomData(activeRoomId);
             });
-        }
 
-        function confirmDelete(id) {
-            showModal({
-                title: "明細の削除",
-                body: "<p class='text-center text-xs text-slate-600'>この注文明細を削除しますか？</p>",
-                actions: [
-                    { label: "キャンセル", type: "secondary", onClick: closeModal },
-                    { 
-                        label: "削除", 
-                        type: "danger", 
-                        onClick: () => {
-                            closeModal();
-                            
-                            if (window.deleteRecordFromCloud) {
-                                window.deleteRecordFromCloud(activeRoomId, id);
-                            }
-
-                            records = records.filter(r => r.id !== id);
-                            saveRoomRecords(activeRoomId, records);
-                            renderAll();
-                            showToast("削除しました", "fa-trash-can text-rose-400");
-                        }
-                    }
-                ]
+            window.addEventListener('firebase-error', () => {
+                const dot = document.getElementById('syncStatusDot');
+                const text = document.getElementById('syncStatusText');
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+                if (text) text.textContent = "オフライン (ローカル保存)";
             });
         }
 
