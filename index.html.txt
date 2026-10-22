@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>虹色オーダー</title>
+
+    <!-- iOS Web App Meta -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="虹色オーダー">
+    <meta name="application-name" content="虹色オーダー">
+
+    <!-- Rainbow SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='white'/%3E%3Cg transform='translate(100,100)'%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23d93829' transform='translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23e88732' transform='rotate(51.4) translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23f1cf47' transform='rotate(102.8) translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23226a3c' transform='rotate(154.2) translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%233fb1e5' transform='rotate(205.7) translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23282b82' transform='rotate(257.1) translate(0,-68)'/%3E%3Cpath d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%235b2e7f' transform='rotate(308.5) translate(0,-68)'/%3E%3Ccircle r='44' fill='%23d93829' stroke='%23111111' stroke-width='6'/%3E%3Crect x='-44' y='-18' width='88' height='26' fill='%23111111'/%3E%3Ctext x='0' y='-4' font-family='Arial, sans-serif' font-weight='900' font-style='italic' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'%3EN%3C/text%3E%3C/g%3E%3C/svg%3E">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-blue-500 selection:text-white">
+
+    <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 py-3">
+        <div class="max-w-xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex items-center justify-center bg-white p-0.5 border border-slate-100">
+                    <svg viewBox="0 0 200 200" width="100%" height="100%">
+                        <rect width="200" height="200" fill="white"/>
+                        <g transform="translate(100,100)">
+                            <g transform="translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#d93829"/></g>
+                            <g transform="rotate(51.4) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#e88732"/></g>
+                            <g transform="rotate(102.8) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#f1cf47"/></g>
+                            <g transform="rotate(154.2) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#226a3c"/></g>
+                            <g transform="rotate(205.7) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#3fb1e5"/></g>
+                            <g transform="rotate(257.1) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#282b82"/></g>
+                            <g transform="rotate(308.5) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#5b2e7f"/></g>
+                            <circle r="44" fill="#d93829" stroke="#111111" stroke-width="6"/>
+                            <rect x="-44" y="-18" width="88" height="26" fill="#111111"/>
+                            <text x="0" y="-4" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="30" fill="white" text-anchor="middle" dominant-baseline="middle">N</text>
+                        </g>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-black text-slate-900 text-base leading-tight tracking-tight">虹色オーダー</h1>
+                    <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>スタンドアロン動作中</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button id="lockAppBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95" title="画面をロック">
+                    <i class="fa-solid fa-lock text-slate-600"></i>
+                </button>
+                <button id="modeToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95">
+                    <i id="modeIcon" class="fa-solid fa-user text-blue-600"></i>
+                    <span id="modeText">一般モード</span>
+                </button>
+                <button id="shareRoomBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95" title="共有">
+                    <i class="fa-solid fa-share-nodes text-blue-600"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-4 pb-28">
+
+        <!-- Room Banner -->
+        <div class="bg-slate-900 text-white p-3.5 rounded-2xl shadow-md flex justify-between items-center">
+            <div class="flex items-center gap-2 min-w-0">
+                <i class="fa-solid fa-layer-group text-blue-400 text-sm flex-shrink-0"></i>
+                <span class="text-xs text-slate-300 flex-shrink-0">現在のルーム:</span>
+                <span id="roomIdDisplay" class="text-sm font-bold text-blue-300 truncate">メインルーム</span>
+            </div>
+            <button id="changeRoomBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-200 font-medium active:scale-95 transition-all border border-slate-700 flex-shrink-0">
+                ルーム切替
+            </button>
+        </div>
+
+        <section id="dashboardSection" class="space-y-3">
+            <div id="userSummaryCard" class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/15">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-check text-blue-200"></i>
+                        <span class="text-xs font-semibold text-blue-100">あなたの購入合計</span>
+                    </div>
+                    <span id="myBuyerNameBadge" class="text-xs bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm font-medium">未設定</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-1">
+                    <div>
+                        <span id="myTotalAmount" class="text-3xl font-black tracking-tight">¥0</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="myTotalQty" class="text-xl font-bold">0</span>
+                        <span class="text-xs text-blue-200"> 点</span>
+                    </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-white/10 text-[11px] text-blue-100/80 flex items-center justify-between">
+                    <span>※ あなたが追加した購入明細の合計です</span>
+                    <span id="myRecordCount">0件</span>
+                </div>
+            </div>
+
+            <div id="adminSummaryCard" class="hidden space-y-3">
+                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
+                    <span class="font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                        管理者モード表示中
+                    </span>
+                    <button id="exitAdminBtn" class="text-amber-900 underline text-[11px] font-semibold">一般モードへ</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <div class="text-xs font-semibold text-slate-500 flex items-center justify-between">
+                            <span>全参加者総合計</span>
+                            <i class="fa-solid fa-coins text-amber-500 bg-amber-50 p-1.5 rounded-lg"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="grandTotalAmount" class="text-2xl font-black text-slate-900">¥0</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <div class="text-xs font-semibold text-slate-500 flex items-center justify-between">
+                            <span>総販売個数</span>
+                            <i class="fa-solid fa-boxes-stacked text-indigo-500 bg-indigo-50 p-1.5 rounded-lg"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="grandTotalQuantity" class="text-2xl font-black text-slate-900">0</span>
+                            <span class="text-xs text-slate-500"> 点</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-amber-200/80 shadow-sm overflow-hidden">
+                    <div class="p-3.5 border-b border-amber-100 bg-amber-50/50 flex items-center justify-between">
+                        <h2 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-boxes-packing text-amber-600"></i>
+                            <span>商品別の集計＆合計数量</span>
+                        </h2>
+                        <span id="productCountTag" class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">0種</span>
+                    </div>
+                    <div id="productSummaryList" class="divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                        <div class="p-3 text-center text-xs text-slate-400">データがありません</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="p-3.5 border-b border-slate-100 flex items-center justify-between">
+                        <h2 class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-users text-blue-600"></i>
+                            <span>参加者別の合計内訳</span>
+                        </h2>
+                        <span id="personCountTag" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0名</span>
+                    </div>
+                    <div id="personSummaryList" class="divide-y divide-slate-100 max-h-40 overflow-y-auto">
+                        <div class="p-3 text-center text-xs text-slate-400">データがありません</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-cart-plus text-emerald-600 text-base"></i>
+                    <span>購入注文の一括登録</span>
+                </h2>
+                <span class="text-[11px] text-slate-400">＋ボタンで複数追加</span>
+            </div>
+
+            <form id="multiPurchaseForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        お名前（購入者名） <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="buyerInput" placeholder="例: 鈴木太郎" required
+                            class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                        <select id="buyerSelect" class="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">履歴から選択</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-xs font-bold text-slate-700">購入アイテム明細</label>
+                    <div id="itemsContainer" class="space-y-2.5"></div>
+                    <button type="button" id="addRowBtn" class="w-full py-2.5 border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl text-blue-600 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>＋ 行を追加する</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-xl flex justify-between items-center text-xs font-bold text-slate-700">
+                    <span>今回追加する合計金額:</span>
+                    <span id="formTotalPreview" class="text-lg font-black text-blue-600">¥0</span>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>この内容で登録する</span>
+                </button>
+            </form>
+        </section>
+
+        <section class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul text-slate-600"></i>
+                    <span id="recordsTitle">自分の登録済み明細</span>
+                </h2>
+
+                <div id="adminFilterWrapper" class="hidden">
+                    <select id="filterBuyer" class="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs text-slate-600 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">全員の明細を表示</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="recordsList" class="space-y-2">
+                <div class="bg-white p-6 rounded-2xl text-center text-xs text-slate-400 border border-slate-200/80">
+                    明細はありません
+                </div>
+            </div>
+        </section>
+
+        <section id="adminActionsSection" class="hidden space-y-2 pt-2">
+            <button id="createNewRoomBtn" class="w-full flex items-center justify-center gap-2 p-3 bg-blue-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95 transition-all">
+                <i class="fa-solid fa-plus-circle text-sm"></i>
+                新しいルームを作成する
+            </button>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="copySummaryBtn" class="flex items-center justify-center gap-2 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100 rounded-2xl font-bold text-xs active:scale-95 transition-all">
+                    <i class="fa-solid fa-copy text-sm"></i>
+                    LINE用テキストコピー
+                </button>
+                <button id="exportCsvBtn" class="flex items-center justify-center gap-2 p-3 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 rounded-2xl font-bold text-xs active:scale-95 transition-all">
+                    <i class="fa-solid fa-file-csv text-sm"></i>
+                    CSVダウンロード
+                </button>
+            </div>
+            <button id="changePasscodeBtn" class="w-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-2xl py-2.5 font-bold text-xs transition-all flex items-center justify-center gap-1.5 mt-2">
+                <i class="fa-solid fa-key text-slate-400"></i>
+                管理者パスコードの変更
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Modals & Toasts -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-xs w-full p-5 space-y-4 shadow-xl border border-slate-100">
+            <h3 id="modalTitle" class="font-bold text-slate-900 text-base text-center"></h3>
+            <div id="modalBody" class="text-xs text-slate-600 space-y-2"></div>
+            <div id="modalActions" class="flex gap-2 pt-2"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMsg">処理完了</span>
+    </div>
+
+    <script>
+        let activeRoomId = localStorage.getItem('active_room_id') || 'main_room';
+        let availableRooms = JSON.parse(localStorage.getItem('rainbow_rooms_list') || '[]');
+        if (availableRooms.length === 0) {
+            availableRooms = [{ id: 'main_room', name: 'メインルーム', createdAt: new Date().toISOString() }];
+            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
+        }
+
+        let isAdminMode = false;
+        let adminPasscode = localStorage.getItem('app_admin_passcode') || "1234";
+        let records = [];
+
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+        const buyerInput = document.getElementById('buyerInput');
+        const buyerSelect = document.getElementById('buyerSelect');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const formTotalPreview = document.getElementById('formTotalPreview');
+        const multiPurchaseForm = document.getElementById('multiPurchaseForm');
+        
+        const modeToggleBtn = document.getElementById('modeToggleBtn');
+        const modeText = document.getElementById('modeText');
+        const modeIcon = document.getElementById('modeIcon');
+        const userSummaryCard = document.getElementById('userSummaryCard');
+        const adminSummaryCard = document.getElementById('adminSummaryCard');
+        const adminActionsSection = document.getElementById('adminActionsSection');
+        const adminFilterWrapper = document.getElementById('adminFilterWrapper');
+        const recordsTitle = document.getElementById('recordsTitle');
+
+        const myTotalAmount = document.getElementById('myTotalAmount');
+        const myTotalQty = document.getElementById('myTotalQty');
+        const myRecordCount = document.getElementById('myRecordCount');
+        const myBuyerNameBadge = document.getElementById('myBuyerNameBadge');
+
+        const grandTotalAmount = document.getElementById('grandTotalAmount');
+        const grandTotalQuantity = document.getElementById('grandTotalQuantity');
+        const personSummaryList = document.getElementById('personSummaryList');
+        const personCountTag = document.getElementById('personCountTag');
+        const filterBuyer = document.getElementById('filterBuyer');
+        const recordsList = document.getElementById('recordsList');
+
+        function getRoomRecords(roomId) {
+            try {
+                const raw = localStorage.getItem(`local_room_data_${roomId}`);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveRoomRecords(roomId, data) {
+            try {
+                localStorage.setItem(`local_room_data_${roomId}`, JSON.stringify(data));
+            } catch (e) {}
+        }
+
+        function loadRoomData(roomId) {
+            records = getRoomRecords(roomId);
+            updateRoomBadge();
+            renderAll();
+        }
+
+        function updateRoomBadge() {
+            const found = availableRooms.find(r => r.id === activeRoomId);
+            roomIdDisplay.textContent = found ? found.name : 'メインルーム';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedBuyer = localStorage.getItem('my_buyer_name');
+            if (savedBuyer) {
+                buyerInput.value = savedBuyer;
+                myBuyerNameBadge.textContent = savedBuyer;
+            }
+
+            addNewItemRow();
+            loadRoomData(activeRoomId);
+            setupEventListeners();
+        });
+
+        function addNewItemRow() {
+            const rowId = Date.now() + Math.random().toString(36).substring(2, 5);
+            const row = document.createElement('div');
+            row.className = 'item-row bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-2 relative transition-all';
+            row.dataset.rowId = rowId;
+
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="text" class="item-name flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="商品名 (例: アクスタ)" required>
+                    <button type="button" class="remove-row-btn p-2 text-slate-400 hover:text-rose-500 transition-colors" title="削除">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 font-bold mb-0.5">単価 (円)</label>
+                        <input type="number" min="0" class="item-price w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="1000" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 font-bold mb-0.5">個数</label>
+                        <input type="number" min="1" value="1" class="item-qty w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                </div>
+            `;
+
+            itemsContainer.appendChild(row);
+
+            row.querySelector('.item-price').addEventListener('input', calculateFormTotal);
+            row.querySelector('.item-qty').addEventListener('input', calculateFormTotal);
+            
+            row.querySelector('.remove-row-btn').addEventListener('click', () => {
+                if (document.querySelectorAll('.item-row').length > 1) {
+                    row.remove();
+                    calculateFormTotal();
+                } else {
+                    showToast("最低1つの項目が必要です", "fa-info-circle text-blue-400");
+                }
+            });
+
+            calculateFormTotal();
+        }
+
+        function calculateFormTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const p = parseFloat(row.querySelector('.item-price').value) || 0;
+                const q = parseInt(row.querySelector('.item-qty').value) || 0;
+                total += (p * q);
+            });
+            formTotalPreview.textContent = `¥${total.toLocaleString()}`;
+        }
+
+        function resetForm() {
+            itemsContainer.innerHTML = '';
+            addNewItemRow();
+            calculateFormTotal();
+        }
+
+        function renderAll() {
+            renderUserSummary();
+            renderAdminSummary();
+            renderBuyerDropdowns();
+            renderRecordsList();
+        }
+
+        function renderUserSummary() {
+            const currentBuyer = buyerInput.value.trim();
+            myBuyerNameBadge.textContent = currentBuyer || '未設定';
+
+            let totalAmt = 0;
+            let totalQty = 0;
+            let count = 0;
+
+            if (currentBuyer) {
+                records.forEach(r => {
+                    if (r.buyer === currentBuyer) {
+                        totalAmt += (r.price * r.qty);
+                        totalQty += r.qty;
+                        count++;
+                    }
+                });
+            }
+
+            myTotalAmount.textContent = `¥${totalAmt.toLocaleString()}`;
+            myTotalQty.textContent = totalQty.toLocaleString();
+            myRecordCount.textContent = `${count}件`;
+        }
+
+        function renderBuyerDropdowns() {
+            const buyersSet = new Set();
+            records.forEach(r => {
+                if (r.buyer) buyersSet.add(r.buyer);
+            });
+
+            buyerSelect.innerHTML = '<option value="">履歴から選択</option>';
+            buyersSet.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                buyerSelect.appendChild(opt);
+            });
+
+            filterBuyer.innerHTML = '<option value="ALL">全員の明細を表示</option>';
+            buyersSet.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                filterBuyer.appendChild(opt);
+            });
+        }
+
+        function renderRecordsList() {
+            recordsList.innerHTML = '';
+
+            const currentBuyer = buyerInput.value.trim();
+            const filterVal = filterBuyer.value;
+
+            let displayRecords = [];
+            if (isAdminMode) {
+                if (filterVal === 'ALL') {
+                    displayRecords = [...records];
+                } else {
+                    displayRecords = records.filter(r => r.buyer === filterVal);
+                }
+            } else {
+                if (currentBuyer) {
+                    displayRecords = records.filter(r => r.buyer === currentBuyer);
+                } else {
+                    displayRecords = [];
+                }
+            }
+
+            if (displayRecords.length === 0) {
+                recordsList.innerHTML = `
+                    <div class="bg-white p-6 rounded-2xl text-center text-xs text-slate-400 border border-slate-200/80">
+                        ${!isAdminMode && !currentBuyer ? 'お名前を入力すると、あなたの購入明細が表示されます' : '該当する明細がありません'}
+                    </div>
+                `;
+                return;
+            }
+
+            displayRecords.forEach(record => {
+                const subtotal = record.price * record.qty;
+                const isMine = record.buyer === currentBuyer;
+
+                const card = document.createElement('div');
+                card.className = `bg-white p-3.5 rounded-2xl border ${isMine ? 'border-blue-200 shadow-sm' : 'border-slate-200/80'} space-y-2 relative transition-all`;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-800">${escapeHtml(record.buyer)}</span>
+                            ${isMine ? '<span class="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-2 py-0.5 rounded-full">あなた</span>' : ''}
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-slate-900">¥${subtotal.toLocaleString()}</span>
+                            ${(isAdminMode || isMine) ? `
+                                <button data-id="${record.id}" class="deleteRecordBtn p-1 text-slate-300 hover:text-rose-500 transition-colors" title="削除">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2 rounded-xl">
+                        <div class="font-medium truncate mr-2">
+                            ${escapeHtml(record.adminItem || record.item)}
+                        </div>
+                        <div class="font-bold whitespace-nowrap text-slate-500">
+                            ¥${record.price.toLocaleString()} × ${record.qty}
+                        </div>
+                    </div>
+                `;
+
+                recordsList.appendChild(card);
+            });
+
+            document.querySelectorAll('.deleteRecordBtn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    confirmDelete(id);
+                });
+            });
+        }
+
+        function renderAdminSummary() {
+            let totalAmt = 0;
+            let totalQty = 0;
+            const personMap = {};
+            const productMap = {};
+
+            records.forEach(r => {
+                const subtotal = r.price * r.qty;
+                totalAmt += subtotal;
+                totalQty += r.qty;
+
+                if (!personMap[r.buyer]) {
+                    personMap[r.buyer] = { amount: 0, qty: 0, count: 0 };
+                }
+                personMap[r.buyer].amount += subtotal;
+                personMap[r.buyer].qty += r.qty;
+                personMap[r.buyer].count += 1;
+
+                const prodKey = r.adminItem || r.item;
+                if (!productMap[prodKey]) {
+                    productMap[prodKey] = { totalQty: 0, totalAmount: 0, buyers: {} };
+                }
+                productMap[prodKey].totalQty += r.qty;
+                productMap[prodKey].totalAmount += subtotal;
+                if (!productMap[prodKey].buyers[r.buyer]) {
+                    productMap[prodKey].buyers[r.buyer] = 0;
+                }
+                productMap[prodKey].buyers[r.buyer] += r.qty;
+            });
+
+            grandTotalAmount.textContent = `¥${totalAmt.toLocaleString()}`;
+            grandTotalQuantity.textContent = totalQty.toLocaleString();
+
+            const productSummaryList = document.getElementById('productSummaryList');
+            const productCountTag = document.getElementById('productCountTag');
+            const prodKeys = Object.keys(productMap);
+            productCountTag.textContent = `${prodKeys.length}種`;
+
+            productSummaryList.innerHTML = '';
+            if (prodKeys.length === 0) {
+                productSummaryList.innerHTML = '<div class="p-3 text-center text-xs text-slate-400">データがありません</div>';
+            } else {
+                prodKeys.forEach(prodName => {
+                    const prodData = productMap[prodName];
+                    const buyerDetails = Object.entries(prodData.buyers)
+                        .map(([bName, bQty]) => `${bName} ${bQty}個`)
+                        .join(' / ');
+
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'p-3 hover:bg-amber-50/30 transition-colors flex items-center justify-between gap-2';
+                    itemEl.innerHTML = `
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                                <span class="truncate">${escapeHtml(prodName)}</span>
+                                <span class="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                    計 ${prodData.totalQty}個
+                                </span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 truncate mt-0.5">
+                                ${escapeHtml(buyerDetails)}
+                            </div>
+                        </div>
+                        <div class="text-right font-extrabold text-xs text-slate-800">
+                            ¥${prodData.totalAmount.toLocaleString()}
+                        </div>
+                    `;
+                    productSummaryList.appendChild(itemEl);
+                });
+            }
+
+            const personKeys = Object.keys(personMap);
+            personCountTag.textContent = `${personKeys.length}名`;
+
+            personSummaryList.innerHTML = '';
+            if (personKeys.length === 0) {
+                personSummaryList.innerHTML = '<div class="p-3 text-center text-xs text-slate-400">データがありません</div>';
+                return;
+            }
+
+            personKeys.forEach(name => {
+                const data = personMap[name];
+                const itemEl = document.createElement('div');
+                itemEl.className = 'p-3 flex items-center justify-between hover:bg-slate-50 transition-colors';
+                itemEl.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                            ${escapeHtml(name.substring(0, 1))}
+                        </div>
+                        <div>
+                            <div class="font-bold text-xs text-slate-800">${escapeHtml(name)}</div>
+                            <div class="text-[10px] text-slate-400">${data.count}件 / 計 ${data.qty}点</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black text-xs text-slate-900">¥${data.amount.toLocaleString()}</div>
+                    </div>
+                `;
+                personSummaryList.appendChild(itemEl);
+            });
+        }
+
+        function setupEventListeners() {
+            modeToggleBtn.addEventListener('click', toggleMode);
+            document.getElementById('exitAdminBtn')?.addEventListener('click', () => {
+                isAdminMode = false;
+                updateModeUI();
+            });
+
+            // 画面ロックボタン
+            document.getElementById('lockAppBtn').addEventListener('click', () => {
+                showModal({
+                    title: "画面ロック中",
+                    body: `
+                        <div class="space-y-2 text-center">
+                            <p class="text-xs text-slate-500">ロックを解除するにはパスコードを入力してください</p>
+                            <input type="password" id="unlockPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••">
+                        </div>
+                    `,
+                    actions: [
+                        { 
+                            label: "解除", 
+                            type: "primary", 
+                            onClick: () => {
+                                const pass = document.getElementById('unlockPassInput').value;
+                                if (pass === adminPasscode) {
+                                    closeModal();
+                                    showToast("ロックを解除しました", "fa-lock-open text-emerald-400");
+                                } else {
+                                    showToast("パスコードが違います", "fa-circle-xmark text-rose-400");
+                                }
+                            }
+                        }
+                    ]
+                });
+            });
+
+            // パスコード変更ボタン
+            document.getElementById('changePasscodeBtn')?.addEventListener('click', () => {
+                showModal({
+                    title: "パスコード変更",
+                    body: `
+                        <div class="space-y-3 text-left">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">新しいパスコード</label>
+                                <input type="password" id="newPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="新しい数字やパスワード">
+                            </div>
+                        </div>
+                    `,
+                    actions: [
+                        { label: "キャンセル", type: "secondary", onClick: closeModal },
+                        { 
+                            label: "変更を保存", 
+                            type: "primary", 
+                            onClick: () => {
+                                const newPass = document.getElementById('newPassInput').value.trim();
+                                if (!newPass) {
+                                    showToast("パスコードを入力してください", "fa-triangle-exclamation text-amber-400");
+                                    return;
+                                }
+                                adminPasscode = newPass;
+                                localStorage.setItem('app_admin_passcode', newPass);
+                                closeModal();
+                                showToast("パスコードを変更しました", "fa-circle-check text-emerald-400");
+                            }
+                        }
+                    ]
+                });
+            });
+
+            document.getElementById('shareRoomBtn').addEventListener('click', () => {
+                const currentUrl = window.location.href;
+                copyTextToClipboard(currentUrl);
+                
+                showModal({
+                    title: "URL共有",
+                    body: `
+                        <div class="space-y-3 text-center">
+                            <p class="text-xs text-slate-500">URLをコピーしました！</p>
+                            <div class="flex justify-center p-3 bg-white rounded-2xl border border-slate-100 shadow-inner">
+                                <div id="qrcodeCanvas"></div>
+                            </div>
+                            <input type="text" readonly value="${escapeHtml(currentUrl)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none">
+                        </div>
+                    `,
+                    actions: [
+                        { label: "閉じる", type: "secondary", onClick: closeModal }
+                    ]
+                });
+
+                setTimeout(() => {
+                    const qrContainer = document.getElementById('qrcodeCanvas');
+                    if (qrContainer && typeof QRCode !== 'undefined') {
+                        new QRCode(qrContainer, {
+                            text: currentUrl,
+                            width: 150,
+                            height: 150
+                        });
+                    }
+                }, 50);
+
+                showToast("URLをコピーしました！", "fa-share-nodes text-blue-400");
+            });
+
+            document.getElementById('changeRoomBtn').addEventListener('click', openRoomSelectModal);
+
+            buyerInput.addEventListener('input', (e) => {
+                const name = e.target.value.trim();
+                localStorage.setItem('my_buyer_name', name);
+                renderUserSummary();
+                renderRecordsList();
+            });
+
+            buyerSelect.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    buyerInput.value = e.target.value;
+                    localStorage.setItem('my_buyer_name', e.target.value);
+                    renderUserSummary();
+                    renderRecordsList();
+                }
+            });
+
+            addRowBtn.addEventListener('click', addNewItemRow);
+
+            multiPurchaseForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const buyerName = buyerInput.value.trim();
+                if (!buyerName) {
+                    showToast("お名前を入力してください", "fa-triangle-exclamation text-amber-400");
+                    return;
+                }
+
+                const rows = document.querySelectorAll('.item-row');
+                const itemsToSave = [];
+
+                rows.forEach(row => {
+                    const itemName = row.querySelector('.item-name').value.trim();
+                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                    const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+
+                    if (itemName) {
+                        itemsToSave.push({ 
+                            id: 'rec_' + Date.now() + Math.random().toString(36).substring(2, 6),
+                            buyer: buyerName, 
+                            item: itemName, 
+                            adminItem: itemName, 
+                            price, 
+                            qty, 
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                });
+
+                if (itemsToSave.length === 0) {
+                    showToast("商品名を入力してください", "fa-triangle-exclamation text-amber-400");
+                    return;
+                }
+
+                const existing = getRoomRecords(activeRoomId);
+                const updated = [...itemsToSave, ...existing];
+                saveRoomRecords(activeRoomId, updated);
+                loadRoomData(activeRoomId);
+
+                resetForm();
+                showToast(`${itemsToSave.length}件の注文を登録しました！`, "fa-circle-check text-emerald-400");
+            });
+
+            document.getElementById('createNewRoomBtn').addEventListener('click', openCreateRoomModal);
+            document.getElementById('copySummaryBtn').addEventListener('click', copySummaryToClipboard);
+            document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
+            filterBuyer.addEventListener('change', renderRecordsList);
+        }
+
+        function toggleMode() {
+            if (isAdminMode) {
+                isAdminMode = false;
+                updateModeUI();
+            } else {
+                showModal({
+                    title: "管理者認証",
+                    body: `
+                        <div class="space-y-2">
+                            <p class="text-xs text-slate-500">パスコードを入力（初期値: 1234）</p>
+                            <input type="password" id="passcodeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••">
+                        </div>
+                    `,
+                    actions: [
+                        { label: "キャンセル", type: "secondary", onClick: closeModal },
+                        { 
+                            label: "認証", 
+                            type: "primary", 
+                            onClick: () => {
+                                const pass = document.getElementById('passcodeInput').value;
+                                if (pass === adminPasscode) {
+                                    isAdminMode = true;
+                                    closeModal();
+                                    updateModeUI();
+                                    showToast("管理者モードに切り替えました", "fa-shield-halved text-amber-400");
+                                } else {
+                                    showToast("パスコードが違います", "fa-circle-xmark text-rose-400");
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
+        }
+
+        function updateModeUI() {
+            if (isAdminMode) {
+                modeText.textContent = "管理者";
+                modeIcon.className = "fa-solid fa-shield-halved text-amber-500";
+                adminSummaryCard.classList.remove('hidden');
+                adminActionsSection.classList.remove('hidden');
+                adminFilterWrapper.classList.remove('hidden');
+                recordsTitle.textContent = "すべての登録済み明細";
+            } else {
+                modeText.textContent = "一般モード";
+                modeIcon.className = "fa-solid fa-user text-blue-600";
+                adminSummaryCard.classList.add('hidden');
+                adminActionsSection.classList.add('hidden');
+                adminFilterWrapper.classList.add('hidden');
+                recordsTitle.textContent = "自分の登録済み明細";
+            }
+            renderAll();
+        }
+
+        function openRoomSelectModal() {
+            let roomListHtml = availableRooms.map(r => `
+                <button data-roomid="${r.id}" class="selectRoomItemBtn w-full p-3 rounded-xl border ${r.id === activeRoomId ? 'border-blue-500 bg-blue-50/50 font-bold text-blue-700' : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'} text-xs text-left flex items-center justify-between transition-all">
+                    <span>${escapeHtml(r.name)}</span>
+                    ${r.id === activeRoomId ? '<i class="fa-solid fa-check text-blue-600"></i>' : ''}
+                </button>
+            `).join('');
+
+            showModal({
+                title: "ルーム切替",
+                body: `<div class="space-y-2 max-h-60 overflow-y-auto pr-1">${roomListHtml}</div>`,
+                actions: [{ label: "閉じる", type: "secondary", onClick: closeModal }]
+            });
+
+            document.querySelectorAll('.selectRoomItemBtn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    activeRoomId = e.currentTarget.dataset.roomid;
+                    localStorage.setItem('active_room_id', activeRoomId);
+                    loadRoomData(activeRoomId);
+                    closeModal();
+                    showToast("ルームを切り替えました", "fa-layer-group text-blue-400");
+                });
+            });
+        }
+
+        function openCreateRoomModal() {
+            showModal({
+                title: "新規ルーム作成",
+                body: `
+                    <div class="space-y-3 text-left">
+                        <label class="block text-xs font-bold text-slate-700">ルーム名</label>
+                        <input type="text" id="newRoomNameInput" placeholder="例: 10月度グッズ購入" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                `,
+                actions: [
+                    { label: "キャンセル", type: "secondary", onClick: closeModal },
+                    { 
+                        label: "作成", 
+                        type: "primary", 
+                        onClick: () => {
+                            const name = document.getElementById('newRoomNameInput').value.trim();
+                            if (!name) return;
+
+                            const newId = 'room_' + Date.now();
+                            availableRooms.push({ id: newId, name: name, createdAt: new Date().toISOString() });
+                            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
+
+                            activeRoomId = newId;
+                            localStorage.setItem('active_room_id', activeRoomId);
+
+                            closeModal();
+                            loadRoomData(activeRoomId);
+                            showToast(`ルーム「${name}」を作成しました`, "fa-circle-check text-emerald-400");
+                        }
+                    }
+                ]
+            });
+        }
+
+        function confirmDelete(id) {
+            showModal({
+                title: "明細の削除",
+                body: "<p class='text-center text-xs text-slate-600'>この注文明細を削除しますか？</p>",
+                actions: [
+                    { label: "キャンセル", type: "secondary", onClick: closeModal },
+                    { 
+                        label: "削除", 
+                        type: "danger", 
+                        onClick: () => {
+                            closeModal();
+                            records = records.filter(r => r.id !== id);
+                            saveRoomRecords(activeRoomId, records);
+                            renderAll();
+                            showToast("削除しました", "fa-trash-can text-rose-400");
+                        }
+                    }
+                ]
+            });
+        }
+
+        function copySummaryToClipboard() {
+            if (records.length === 0) {
+                showToast("データがありません", "fa-triangle-exclamation text-amber-400");
+                return;
+            }
+
+            const currentRoomObj = availableRooms.find(r => r.id === activeRoomId);
+            const roomName = currentRoomObj ? currentRoomObj.name : 'メインルーム';
+
+            let text = `【注文集計結果 - ルーム: ${roomName}】\n`;
+            const personMap = {};
+            let grandTotal = 0;
+
+            records.forEach(r => {
+                const sub = r.price * r.qty;
+                grandTotal += sub;
+                if (!personMap[r.buyer]) personMap[r.buyer] = { total: 0, items: [] };
+                personMap[r.buyer].total += sub;
+                personMap[r.buyer].items.push(`${r.adminItem || r.item} (¥${r.price}×${r.qty})`);
+            });
+
+            for (const [person, data] of Object.entries(personMap)) {
+                text += `\n■ ${person} 様: ¥${data.total.toLocaleString()}\n`;
+                data.items.forEach(item => {
+                    text += `  ・${item}\n`;
+                });
+            }
+
+            text += `\n================\n総合計: ¥${grandTotal.toLocaleString()}`;
+
+            copyTextToClipboard(text);
+            showToast("LINE用集計テキストをコピーしました！", "fa-copy text-emerald-400");
+        }
+
+        function exportToCsv() {
+            if (records.length === 0) {
+                showToast("データがありません", "fa-triangle-exclamation text-amber-400");
+                return;
+            }
+
+            let csvContent = "\uFEFF購入者名,商品名,単価,数量,小計\n";
+            records.forEach(r => {
+                const subtotal = r.price * r.qty;
+                csvContent += `"${r.buyer}","${r.item}",${r.price},${r.qty},${subtotal}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `summary_${activeRoomId}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("CSVを出力しました", "fa-file-csv text-blue-400");
+        }
+
+        function copyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        function showModal({ title, body, actions }) {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = body;
+
+            const actionsContainer = document.getElementById('modalActions');
+            actionsContainer.innerHTML = '';
+
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.textContent = action.label;
+                let btnClass = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ";
+                if (action.type === 'primary') {
+                    btnClass += "bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:bg-blue-700";
+                } else if (action.type === 'danger') {
+                    btnClass += "bg-rose-600 text-white shadow-md shadow-rose-500/20 hover:bg-rose-700";
+                } else {
+                    btnClass += "bg-slate-100 text-slate-700 hover:bg-slate-200";
+                }
+                btn.className = btnClass;
+                btn.onclick = action.onClick;
+                actionsContainer.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        function showToast(msg, iconClass) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = msg;
+            toastIcon.className = `fa-solid ${iconClass || 'fa-circle-check text-emerald-400'}`;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, function (m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+</html>
