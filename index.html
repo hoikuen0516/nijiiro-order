@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- 検索エンジンにインデックスさせない（Google検索等に出さない）設定 -->
+    <!-- 検索エンジンにインデックスさせない設定 -->
     <meta name="robots" content="noindex, nofollow">
     <title>虹色オーダー</title>
 
@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="虹色オーダー">
     <meta name="application-name" content="虹色オーダー">
 
-    <!-- Rainbow Favicon & iOS Home Screen Apple Touch Icon (PNG Data URI for iOS Safari compatibility) -->
+    <!-- Rainbow Favicon & iOS Home Screen Apple Touch Icon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='white'/><g transform='translate(100,100)'><g transform='translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23d93829'/></g><g transform='rotate(51.4) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23e88732'/></g><g transform='rotate(102.8) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23f1cf47'/></g><g transform='rotate(154.2) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23226a3c'/></g><g transform='rotate(205.7) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%233fb1e5'/></g><g transform='rotate(257.1) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23282b82'/></g><g transform='rotate(308.5) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%235b2e7f'/></g><circle r='44' fill='%23d93829' stroke='%23111111' stroke-width='6'/><path d='M-25,18 Q0,38 25,18' fill='none' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><line x1='-28' y1='14' x2='-22' y2='22' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><line x1='28' y1='14' x2='22' y2='22' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><rect x='-44' y='-18' width='88' height='26' fill='%23111111'/><line x1='-28' y1='-32' x2='-16' y2='-20' stroke='%23e85292' stroke-width='5' stroke-linecap='round'/><line x1='-14' y1='-36' x2='-2' y2='-24' stroke='%23f1cf47' stroke-width='5' stroke-linecap='round'/><line x1='0' y1='-38' x2='12' y2='-26' stroke='%23282b82' stroke-width='5' stroke-linecap='round'/><text x='0' y='-4' font-family='Arial, sans-serif' font-weight='900' font-style='italic' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>N</text></g></svg>">
     <link id="appleTouchIconLink" rel="apple-touch-icon" href="">
 
@@ -23,6 +23,98 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase state & listeners
+        window.firebaseApp = null;
+        window.firebaseDb = null;
+        window.firebaseAuth = null;
+        window.unsubscribeRoom = null;
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-app';
+        window.appId = appId;
+
+        // Firebase Config Setup
+        let firebaseConfig = null;
+        if (typeof __firebase_config !== 'undefined') {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        }
+
+        if (firebaseConfig) {
+            window.firebaseApp = initializeApp(firebaseConfig);
+            window.firebaseDb = getFirestore(window.firebaseApp);
+            window.firebaseAuth = getAuth(window.firebaseApp);
+
+            // Authentication Setup
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(window.firebaseAuth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(window.firebaseAuth);
+                    }
+                    console.log("Firebase Auth Connected:", window.firebaseAuth.currentUser?.uid);
+                    window.dispatchEvent(new CustomEvent('firebase-ready'));
+                } catch (err) {
+                    console.error("Firebase Auth Error:", err);
+                }
+            };
+            initAuth();
+        }
+
+        // Firebase Sync Helper Functions
+        window.subscribeToRoomRealtime = function(roomId, onDataReceived) {
+            if (window.unsubscribeRoom) {
+                window.unsubscribeRoom();
+                window.unsubscribeRoom = null;
+            }
+
+            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) {
+                // Fallback to local storage
+                onDataReceived(getRoomRecords(roomId));
+                return;
+            }
+
+            const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`);
+
+            window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
+                const fetchedRecords = [];
+                snapshot.forEach((docSnap) => {
+                    fetchedRecords.push(docSnap.data());
+                });
+                fetchedRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                onDataReceived(fetchedRecords);
+            }, (error) => {
+                console.error("Firestore Snapshot Error:", error);
+                onDataReceived(getRoomRecords(roomId));
+            });
+        };
+
+        window.saveRecordToCloud = async function(roomId, record) {
+            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return;
+            try {
+                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, record.id);
+                await setDoc(docRef, record);
+            } catch (e) {
+                console.error("Error saving record:", e);
+            }
+        };
+
+        window.deleteRecordFromCloud = async function(roomId, recordId) {
+            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return;
+            try {
+                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, recordId);
+                await deleteDoc(docRef);
+            } catch (e) {
+                console.error("Error deleting record:", e);
+            }
+        };
+    </script>
 
     <style>
         body {
@@ -41,7 +133,7 @@
 </head>
 <body class="h-full flex flex-col text-slate-800 antialiased selection:bg-blue-500 selection:text-white">
 
-    <!-- 全画面閲覧ロックオーバーレイ (パスコード未認証時に表示) -->
+    <!-- App Lock Barrier Overlay -->
     <div id="appLockOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center space-y-4 shadow-2xl border border-slate-100">
             <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-sm">
@@ -62,6 +154,7 @@
         </div>
     </div>
 
+    <!-- Main Header -->
     <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 py-3">
         <div class="max-w-xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -69,7 +162,6 @@
                     <svg viewBox="0 0 200 200" width="100%" height="100%">
                         <rect width="200" height="200" fill="white"/>
                         <g transform="translate(100,100)">
-                            <!-- 7つのレインボーハート -->
                             <g transform="translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#d93829"/></g>
                             <g transform="rotate(51.4) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#e88732"/></g>
                             <g transform="rotate(102.8) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#f1cf47"/></g>
@@ -77,20 +169,14 @@
                             <g transform="rotate(205.7) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#3fb1e5"/></g>
                             <g transform="rotate(257.1) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#282b82"/></g>
                             <g transform="rotate(308.5) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#5b2e7f"/></g>
-                            
-                            <!-- 中央のニコちゃんロゴ -->
                             <circle r="44" fill="#d93829" stroke="#111111" stroke-width="6"/>
-                            <!-- スマイルマーク口元 -->
                             <path d="M-25,18 Q0,38 25,18" fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
                             <line x1="-28" y1="14" x2="-22" y2="22" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
                             <line x1="28" y1="14" x2="22" y2="22" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
-                            <!-- 黒帯 -->
                             <rect x="-44" y="-18" width="88" height="26" fill="#111111"/>
-                            <!-- 頭部の斜めカラーライン -->
                             <line x1="-28" y1="-32" x2="-16" y2="-20" stroke="#e85292" stroke-width="5" stroke-linecap="round"/>
                             <line x1="-14" y1="-36" x2="-2" y2="-24" stroke="#f1cf47" stroke-width="5" stroke-linecap="round"/>
                             <line x1="0" y1="-38" x2="12" y2="-26" stroke="#282b82" stroke-width="5" stroke-linecap="round"/>
-                            <!-- N 文字 -->
                             <text x="0" y="-4" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="30" fill="white" text-anchor="middle" dominant-baseline="middle">N</text>
                         </g>
                     </svg>
@@ -98,8 +184,8 @@
                 <div>
                     <h1 class="font-black text-slate-900 text-base leading-tight tracking-tight">虹色オーダー</h1>
                     <p class="text-[11px] text-slate-500 flex items-center gap-1">
-                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>スタンドアロン動作中</span>
+                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span id="syncStatusText">リアルタイム同期中</span>
                     </p>
                 </div>
             </div>
@@ -119,6 +205,7 @@
         </div>
     </header>
 
+    <!-- Main Container -->
     <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-4 pb-28">
 
         <!-- Room Banner -->
@@ -133,6 +220,7 @@
             </button>
         </div>
 
+        <!-- Dashboard Section -->
         <section id="dashboardSection" class="space-y-3">
             <div id="userSummaryCard" class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/15">
                 <div class="flex items-center justify-between mb-2">
@@ -157,6 +245,7 @@
                 </div>
             </div>
 
+            <!-- Admin Summary View -->
             <div id="adminSummaryCard" class="hidden space-y-3">
                 <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
                     <span class="font-bold flex items-center gap-1.5">
@@ -217,6 +306,7 @@
             </div>
         </section>
 
+        <!-- Multi-item Entry Form Section -->
         <section class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -261,6 +351,7 @@
             </form>
         </section>
 
+        <!-- Records List Section -->
         <section class="space-y-3">
             <div class="flex items-center justify-between px-1">
                 <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -282,6 +373,7 @@
             </div>
         </section>
 
+        <!-- Admin Actions Bar -->
         <section id="adminActionsSection" class="hidden space-y-2 pt-2">
             <button id="createNewRoomBtn" class="w-full flex items-center justify-center gap-2 p-3 bg-blue-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95 transition-all">
                 <i class="fa-solid fa-plus-circle text-sm"></i>
@@ -319,7 +411,9 @@
         <span id="toastMsg">処理完了</span>
     </div>
 
+    <!-- Application Controller Script -->
     <script>
+        // State variables
         let activeRoomId = localStorage.getItem('active_room_id') || 'main_room';
         let availableRooms = JSON.parse(localStorage.getItem('rainbow_rooms_list') || '[]');
         if (availableRooms.length === 0) {
@@ -328,12 +422,12 @@
         }
 
         let isAdminMode = false;
-        // 初期パスコードの指定（閲覧用：0516 / 管理者用：1234）
         let entryPasscode = localStorage.getItem('app_entry_passcode') || "0516";
         let adminPasscode = localStorage.getItem('app_admin_passcode') || "1234";
         let isAppUnlocked = sessionStorage.getItem('app_is_unlocked') === 'true';
         let records = [];
 
+        // DOM Elements
         const appLockOverlay = document.getElementById('appLockOverlay');
         const entryPasscodeCode = document.getElementById('entryPasscodeCode');
         const unlockAppBtn = document.getElementById('unlockAppBtn');
@@ -367,6 +461,125 @@
         const personCountTag = document.getElementById('personCountTag');
         const filterBuyer = document.getElementById('filterBuyer');
         const recordsList = document.getElementById('recordsList');
+
+        // MODE SWITCHING & UI FUNCTIONS
+        function toggleMode() {
+            if (isAdminMode) {
+                isAdminMode = false;
+                updateModeUI();
+            } else {
+                showModal({
+                    title: "管理者モード認証",
+                    body: `
+                        <div class="space-y-2">
+                            <p class="text-slate-500 text-center">管理者用パスコードを入力してください</p>
+                            <input type="password" id="adminPassInput" placeholder="••••" maxlength="12"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    `,
+                    actions: [
+                        { label: "キャンセル", type: "secondary", onClick: closeModal },
+                        {
+                            label: "認証",
+                            type: "primary",
+                            onClick: () => {
+                                const pass = document.getElementById('adminPassInput').value.trim();
+                                if (pass === adminPasscode) {
+                                    isAdminMode = true;
+                                    closeModal();
+                                    updateModeUI();
+                                    showToast("管理者モードに切り替えました", "fa-shield-halved text-amber-400");
+                                } else {
+                                    showToast("パスコードが違います", "fa-circle-xmark text-rose-400");
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
+        }
+
+        function updateModeUI() {
+            if (isAdminMode) {
+                modeText.textContent = "管理者モード";
+                modeIcon.className = "fa-solid fa-shield-halved text-amber-500";
+                adminSummaryCard.classList.remove('hidden');
+                adminActionsSection.classList.remove('hidden');
+                adminFilterWrapper.classList.remove('hidden');
+                recordsTitle.textContent = "全体データ管理";
+            } else {
+                modeText.textContent = "一般モード";
+                modeIcon.className = "fa-solid fa-user text-blue-600";
+                adminSummaryCard.classList.add('hidden');
+                adminActionsSection.classList.add('hidden');
+                adminFilterWrapper.classList.add('hidden');
+                recordsTitle.textContent = "自分の登録済み明細";
+            }
+            renderAll();
+        }
+
+        // ROOM SELECT & MODAL FUNCTIONS
+        function openRoomSelectModal() {
+            const roomListHtml = availableRooms.map(r => `
+                <div class="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl flex justify-between items-center cursor-pointer transition-colors ${r.id === activeRoomId ? 'border-2 border-blue-500 font-bold' : 'border border-slate-200'}"
+                     onclick="switchRoom('${r.id}')">
+                    <span class="text-xs text-slate-800">${escapeHtml(r.name)}</span>
+                    ${r.id === activeRoomId ? '<i class="fa-solid fa-check text-blue-600 text-xs"></i>' : ''}
+                </div>
+            `).join('');
+
+            showModal({
+                title: "ルーム選択",
+                body: `<div class="space-y-2 max-h-60 overflow-y-auto">${roomListHtml}</div>`,
+                actions: [
+                    { label: "閉じる", type: "secondary", onClick: closeModal }
+                ]
+            });
+        }
+
+        window.switchRoom = function(roomId) {
+            activeRoomId = roomId;
+            localStorage.setItem('active_room_id', roomId);
+            closeModal();
+            loadRoomData(roomId);
+            showToast("ルームを切り替えました", "fa-layer-group text-blue-400");
+        };
+
+        function openCreateRoomModal() {
+            showModal({
+                title: "新規ルーム作成",
+                body: `
+                    <div class="space-y-2">
+                        <label class="block text-xs text-slate-600 font-bold">ルーム名</label>
+                        <input type="text" id="newRoomNameInput" placeholder="例: 5月買付用"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                `,
+                actions: [
+                    { label: "キャンセル", type: "secondary", onClick: closeModal },
+                    {
+                        label: "作成",
+                        type: "primary",
+                        onClick: () => {
+                            const name = document.getElementById('newRoomNameInput').value.trim();
+                            if (!name) {
+                                showToast("ルーム名を入力してください", "fa-triangle-exclamation text-amber-400");
+                                return;
+                            }
+                            const newRoom = {
+                                id: 'room_' + Date.now(),
+                                name: name,
+                                createdAt: new Date().toISOString()
+                            };
+                            availableRooms.push(newRoom);
+                            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
+                            closeModal();
+                            switchRoom(newRoom.id);
+                        }
+                    }
+                ]
+            });
+        }
 
         function checkAppLockState() {
             if (isAppUnlocked) {
@@ -407,9 +620,18 @@
         }
 
         function loadRoomData(roomId) {
-            records = getRoomRecords(roomId);
             updateRoomBadge();
-            renderAll();
+
+            if (typeof window.subscribeToRoomRealtime === 'function') {
+                window.subscribeToRoomRealtime(roomId, (cloudRecords) => {
+                    records = cloudRecords;
+                    saveRoomRecords(roomId, records);
+                    renderAll();
+                });
+            } else {
+                records = getRoomRecords(roomId);
+                renderAll();
+            }
         }
 
         function updateRoomBadge() {
@@ -644,8 +866,9 @@
             `).join('');
         }
 
+        // INITIALIZATION
         window.addEventListener('DOMContentLoaded', () => {
-            // iOS SafariはSVGのapple-touch-iconに対応していないため、Canvas経由でPNGに動的変換してセット
+            // PNG icon conversion for iOS home screen icon
             try {
                 const svgString = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='white'/><g transform='translate(100,100)'><g transform='translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#d93829'/></g><g transform='rotate(51.4) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#e88732'/></g><g transform='rotate(102.8) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#f1cf47'/></g><g transform='rotate(154.2) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#226a3c'/></g><g transform='rotate(205.7) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#3fb1e5'/></g><g transform='rotate(257.1) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#282b82'/></g><g transform='rotate(308.5) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#5b2e7f'/></g><circle r='44' fill='#d93829' stroke='#111111' stroke-width='6'/><path d='M-25,18 Q0,38 25,18' fill='none' stroke='#111111' stroke-width='6' stroke-linecap='round'/><line x1='-28' y1='14' x2='-22' y2='22' stroke='#111111' stroke-width='6' stroke-linecap='round'/><line x1='28' y1='14' x2='22' y2='22' stroke='#111111' stroke-width='6' stroke-linecap='round'/><rect x='-44' y='-18' width='88' height='26' fill='#111111'/><line x1='-28' y1='-32' x2='-16' y2='-20' stroke='#e85292' stroke-width='5' stroke-linecap='round'/><line x1='-14' y1='-36' x2='-2' y2='-24' stroke='#f1cf47' stroke-width='5' stroke-linecap='round'/><line x1='0' y1='-38' x2='12' y2='-26' stroke='#282b82' stroke-width='5' stroke-linecap='round'/><text x='0' y='-4' font-family='Arial, sans-serif' font-weight='900' font-style='italic' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>N</text></g></svg>`;
                 const img = new Image();
@@ -822,10 +1045,15 @@
                     return;
                 }
 
+                itemsToSave.forEach(rec => {
+                    if (window.saveRecordToCloud) {
+                        window.saveRecordToCloud(activeRoomId, rec);
+                    }
+                });
+
                 const existing = getRoomRecords(activeRoomId);
                 const updated = [...itemsToSave, ...existing];
                 saveRoomRecords(activeRoomId, updated);
-                loadRoomData(activeRoomId);
 
                 resetForm();
                 showToast(`${itemsToSave.length}件の注文を登録しました！`, "fa-circle-check text-emerald-400");
@@ -835,118 +1063,13 @@
             document.getElementById('copySummaryBtn').addEventListener('click', copySummaryToClipboard);
             document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
             filterBuyer.addEventListener('change', renderRecordsList);
-        }
 
-        function toggleMode() {
-            if (isAdminMode) {
-                isAdminMode = false;
-                updateModeUI();
-            } else {
-                showModal({
-                    title: "管理者認証",
-                    body: `
-                        <div class="space-y-2">
-                            <p class="text-xs text-slate-500">管理者パスコードを入力</p>
-                            <input type="password" id="passcodeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••">
-                        </div>
-                    `,
-                    actions: [
-                        { label: "キャンセル", type: "secondary", onClick: closeModal },
-                        { 
-                            label: "認証", 
-                            type: "primary", 
-                            onClick: () => {
-                                const pass = document.getElementById('passcodeInput').value;
-                                if (pass === adminPasscode) {
-                                    isAdminMode = true;
-                                    closeModal();
-                                    updateModeUI();
-                                    showToast("管理者モードに切り替えました", "fa-shield-halved text-amber-400");
-                                } else {
-                                    showToast("パスコードが違います", "fa-circle-xmark text-rose-400");
-                                }
-                            }
-                        }
-                    ]
-                });
-            }
-        }
-
-        function updateModeUI() {
-            if (isAdminMode) {
-                modeText.textContent = "管理者";
-                modeIcon.className = "fa-solid fa-shield-halved text-amber-500";
-                adminSummaryCard.classList.remove('hidden');
-                adminActionsSection.classList.remove('hidden');
-                adminFilterWrapper.classList.remove('hidden');
-                recordsTitle.textContent = "すべての登録済み明細";
-            } else {
-                modeText.textContent = "一般モード";
-                modeIcon.className = "fa-solid fa-user text-blue-600";
-                adminSummaryCard.classList.add('hidden');
-                adminActionsSection.classList.add('hidden');
-                adminFilterWrapper.classList.add('hidden');
-                recordsTitle.textContent = "自分の登録済み明細";
-            }
-            renderAll();
-        }
-
-        function openRoomSelectModal() {
-            let roomListHtml = availableRooms.map(r => `
-                <button data-roomid="${r.id}" class="selectRoomItemBtn w-full p-3 rounded-xl border ${r.id === activeRoomId ? 'border-blue-500 bg-blue-50/50 font-bold text-blue-700' : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'} text-xs text-left flex items-center justify-between transition-all">
-                    <span>${escapeHtml(r.name)}</span>
-                    ${r.id === activeRoomId ? '<i class="fa-solid fa-check text-blue-600"></i>' : ''}
-                </button>
-            `).join('');
-
-            showModal({
-                title: "ルーム切替",
-                body: `<div class="space-y-2 max-h-60 overflow-y-auto pr-1">${roomListHtml}</div>`,
-                actions: [{ label: "閉じる", type: "secondary", onClick: closeModal }]
-            });
-
-            document.querySelectorAll('.selectRoomItemBtn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    activeRoomId = e.currentTarget.dataset.roomid;
-                    localStorage.setItem('active_room_id', activeRoomId);
-                    loadRoomData(activeRoomId);
-                    closeModal();
-                    showToast("ルームを切り替えました", "fa-layer-group text-blue-400");
-                });
-            });
-        }
-
-        function openCreateRoomModal() {
-            showModal({
-                title: "新規ルーム作成",
-                body: `
-                    <div class="space-y-3 text-left">
-                        <label class="block text-xs font-bold text-slate-700">ルーム名</label>
-                        <input type="text" id="newRoomNameInput" placeholder="例: 10月度グッズ購入" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                `,
-                actions: [
-                    { label: "キャンセル", type: "secondary", onClick: closeModal },
-                    { 
-                        label: "作成", 
-                        type: "primary", 
-                        onClick: () => {
-                            const name = document.getElementById('newRoomNameInput').value.trim();
-                            if (!name) return;
-
-                            const newId = 'room_' + Date.now();
-                            availableRooms.push({ id: newId, name: name, createdAt: new Date().toISOString() });
-                            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
-
-                            activeRoomId = newId;
-                            localStorage.setItem('active_room_id', activeRoomId);
-
-                            closeModal();
-                            loadRoomData(activeRoomId);
-                            showToast(`ルーム「${name}」を作成しました`, "fa-circle-check text-emerald-400");
-                        }
-                    }
-                ]
+            window.addEventListener('firebase-ready', () => {
+                const dot = document.getElementById('syncStatusDot');
+                const text = document.getElementById('syncStatusText');
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                if (text) text.textContent = "リアルタイム同期中";
+                loadRoomData(activeRoomId);
             });
         }
 
@@ -961,6 +1084,11 @@
                         type: "danger", 
                         onClick: () => {
                             closeModal();
+                            
+                            if (window.deleteRecordFromCloud) {
+                                window.deleteRecordFromCloud(activeRoomId, id);
+                            }
+
                             records = records.filter(r => r.id !== id);
                             saveRoomRecords(activeRoomId, records);
                             renderAll();
