@@ -1,112 +1,332 @@
 <!DOCTYPE html>
-<html lang="ja" class="h-full bg-slate-50">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- 検索エンジンにインデックスさせない設定 -->
-    <meta name="robots" content="noindex, nofollow">
-    <title>虹色オーダー</title>
+    <title>虹色オーダー - グループ共同注文管理</title>
 
-    <!-- iOS Web App Meta -->
+    <!-- PWA & Apple Web App Icons -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="虹色オーダー">
-    <meta name="application-name" content="虹色オーダー">
+    <link rel="apple-touch-icon" id="appleTouchIcon" href="">
+    <link rel="icon" id="faviconIcon" type="image/svg+xml" href="">
 
-    <!-- Rainbow Favicon & iOS Home Screen Apple Touch Icon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='white'/><g transform='translate(100,100)'><g transform='translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23d93829'/></g><g transform='rotate(51.4) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23e88732'/></g><g transform='rotate(102.8) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23f1cf47'/></g><g transform='rotate(154.2) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23226a3c'/></g><g transform='rotate(205.7) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%233fb1e5'/></g><g transform='rotate(257.1) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%23282b82'/></g><g transform='rotate(308.5) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='%235b2e7f'/></g><circle r='44' fill='%23d93829' stroke='%23111111' stroke-width='6'/><path d='M-25,18 Q0,38 25,18' fill='none' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><line x1='-28' y1='14' x2='-22' y2='22' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><line x1='28' y1='14' x2='22' y2='22' stroke='%23111111' stroke-width='6' stroke-linecap='round'/><rect x='-44' y='-18' width='88' height='26' fill='%23111111'/><line x1='-28' y1='-32' x2='-16' y2='-20' stroke='%23e85292' stroke-width='5' stroke-linecap='round'/><line x1='-14' y1='-36' x2='-2' y2='-24' stroke='%23f1cf47' stroke-width='5' stroke-linecap='round'/><line x1='0' y1='-38' x2='12' y2='-26' stroke='%23282b82' stroke-width='5' stroke-linecap='round'/><text x='0' y='-4' font-family='Arial, sans-serif' font-weight='900' font-style='italic' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>N</text></g></svg>">
-    <link id="appleTouchIconLink" rel="apple-touch-icon" href="">
-
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS & Font Awesome Icons CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- QRCode.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-    <!-- Firebase SDK Modules -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global Firebase state & listeners
-        window.firebaseApp = null;
-        window.firebaseDb = null;
-        window.firebaseAuth = null;
-        window.unsubscribeRoom = null;
-
-        // URLパラメータからのルームID優先読み込み & リスト自動追加
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomFromUrl = urlParams.get('room');
-        
-        let availableRooms = JSON.parse(localStorage.getItem('rainbow_rooms_list') || '[]');
-        if (availableRooms.length === 0) {
-            availableRooms = [{ id: 'main_room', name: 'メインルーム', createdAt: new Date().toISOString() }];
-        }
-
-        if (roomFromUrl) {
-            localStorage.setItem('active_room_id', roomFromUrl);
-            // 共有されてアクセスしたルームがローカルリストに存在しない場合は追加
-            if (!availableRooms.some(r => r.id === roomFromUrl)) {
-                availableRooms.push({
-                    id: roomFromUrl,
-                    name: `共有ルーム (${roomFromUrl.substring(0, 8)})`,
-                    createdAt: new Date().toISOString()
-                });
+    <!-- Tailwind Custom Color Configurations -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nijiiro: {
+                            red: '#ef4444',
+                            orange: '#f97316',
+                            yellow: '#eab308',
+                            green: '#22c55e',
+                            blue: '#06b6d4',
+                            indigo: '#6366f1',
+                            purple: '#a855f7'
+                        }
+                    }
+                }
             }
         }
-        localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
+    </script>
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-shared-app';
-        window.appId = appId;
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        .rainbow-border {
+            border-image: linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7) 1;
+        }
+        .rainbow-bg {
+            background: linear-gradient(135deg, #ef4444 0%, #f97316 16%, #eab308 33%, #22c55e 50%, #06b6d4 66%, #6366f1 83%, #a855f7 100%);
+        }
+        .rainbow-text {
+            background: linear-gradient(135deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-12 antialiased">
 
-        // Firebase Config Setup
+    <!-- 閲覧パスコードロック画面 -->
+    <div id="passcodeLockOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-6 border border-white/20">
+            <div id="lockAppLogo" class="w-20 h-20 mx-auto flex items-center justify-center"></div>
+            <div>
+                <h2 class="text-2xl font-black text-slate-800 tracking-tight">虹色オーダー</h2>
+                <p class="text-sm text-slate-500 mt-1">閲覧用パスコードを入力してください</p>
+            </div>
+            <div>
+                <input type="password" id="passcodeInput" maxlength="4" placeholder="••••" pattern="[0-9]*" inputmode="numeric"
+                    class="w-full text-center text-3xl font-mono tracking-[0.5em] px-4 py-3 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:outline-none transition-all">
+                <p id="passcodeError" class="text-xs text-rose-500 font-bold mt-2 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>パスコードが違います</p>
+            </div>
+            <button id="submitPasscodeBtn" class="w-full py-3.5 rainbow-bg text-white font-bold rounded-2xl shadow-lg hover:opacity-95 transition-all">
+                認証する
+            </button>
+        </div>
+    </div>
+
+    <!-- アプリメインヘッダー -->
+    <header class="sticky top-0 z-40 glass-card border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="headerAppLogo" class="w-10 h-10 flex-shrink-0 cursor-pointer"></div>
+                <div>
+                    <h1 class="font-black text-slate-900 text-base leading-tight tracking-tight flex items-center gap-2">
+                        <span>虹色オーダー</span>
+                        <span id="currentRoomBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">メイン</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
+                        <span id="syncStatusText">同期確認中...</span>
+                        <button id="forceSyncBtn" class="ml-1 text-[10px] text-indigo-600 font-bold underline hover:text-indigo-800">
+                            <i class="fa-solid fa-arrows-rotate mr-0.5"></i>再接続
+                        </button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 右上操作ボタン群 -->
+            <div class="flex items-center gap-2">
+                <button id="modeToggleBtn" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1.5 border border-slate-200">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span id="modeToggleLabel">一般モード</span>
+                </button>
+                <button id="shareRoomBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200" title="部屋を共有">
+                    <i class="fa-solid fa-share-nodes"></i>
+                </button>
+                <button id="roomSelectBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200" title="ルーム切替">
+                    <i class="fa-solid fa-door-open"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- 注文登録カード（一般モード用） -->
+        <section id="userFormSection" class="glass-card rounded-3xl p-5 shadow-lg border border-white/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-cart-plus text-indigo-500"></i>
+                    <span>注文を入力する</span>
+                </h2>
+                <span class="text-xs text-slate-400">複数同時に追加できます</span>
+            </div>
+
+            <form id="multiPurchaseForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">お名前（購入者）<span class="text-rose-500">*</span></label>
+                    <input type="text" id="buyerInput" placeholder="例: たなか" required
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 focus:outline-none transition-all">
+                </div>
+
+                <div id="itemRowsContainer" class="space-y-3">
+                    <!-- 動的に行が追加されます -->
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" id="addRowBtn" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1 border border-slate-200">
+                        <i class="fa-solid fa-plus text-indigo-500"></i>
+                        <span>商品行を追加</span>
+                    </button>
+                    <button type="submit" class="flex-1 py-2.5 rainbow-bg text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>注文を確定・同期</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 管理者コントロールバー（管理者モード用） -->
+        <section id="adminControlSection" class="glass-card rounded-3xl p-5 shadow-lg border border-amber-200 bg-amber-50/50 space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="font-black text-amber-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-user-shield text-amber-600"></i>
+                    <span>管理者メニュー</span>
+                </h2>
+                <span class="text-xs bg-amber-200/60 text-amber-900 px-2.5 py-1 rounded-full font-bold">管理権限オン</span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-bold">
+                <button id="exportCsvBtn" class="px-3 py-2 bg-white border border-amber-300 text-amber-800 rounded-xl shadow-sm hover:bg-amber-100 transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV出力
+                </button>
+                <button id="clearAllDataBtn" class="px-3 py-2 bg-rose-100 text-rose-700 border border-rose-200 rounded-xl hover:bg-rose-200 transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> 全注文削除
+                </button>
+            </div>
+        </section>
+
+        <!-- 注文一覧表示エリア -->
+        <section class="glass-card rounded-3xl p-5 shadow-lg border border-white/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-indigo-500"></i>
+                    <span>注文状況一覧</span>
+                </h2>
+                <div class="text-xs text-slate-500 font-bold">
+                    合計: <span id="totalAmountText" class="text-base text-indigo-600 font-black">¥0</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase rounded-xl">
+                        <tr>
+                            <th class="p-3 rounded-l-xl">名前</th>
+                            <th class="p-3">商品名</th>
+                            <th class="p-3 text-right">単価</th>
+                            <th class="p-3 text-center">数量</th>
+                            <th class="p-3 text-right">小計</th>
+                            <th class="p-3 text-center rounded-r-xl">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody" class="divide-y divide-slate-100 font-medium">
+                        <!-- 動的に挿入 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" class="text-center py-10 space-y-2 text-slate-400">
+                <i class="fa-solid fa-basket-shopping text-4xl text-slate-300"></i>
+                <p class="text-sm">まだ注文が登録されていません</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- 管理者パスコード確認モーダル -->
+    <div id="adminAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 border border-white/20">
+            <h3 class="text-lg font-black text-slate-800">管理者認証</h3>
+            <p class="text-xs text-slate-500">管理者用パスコードを入力してください</p>
+            <input type="password" id="adminPasscodeInput" maxlength="4" placeholder="••••" pattern="[0-9]*" inputmode="numeric"
+                class="w-full text-center text-2xl font-mono tracking-[0.4em] px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none">
+            <p id="adminPassError" class="text-xs text-rose-500 font-bold hidden">パスコードが違います</p>
+            <div class="flex gap-2">
+                <button id="cancelAdminAuthBtn" class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs">キャンセル</button>
+                <button id="confirmAdminAuthBtn" class="flex-1 py-2.5 bg-amber-500 text-white font-bold rounded-xl text-xs shadow-md hover:bg-amber-600">認証</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ルーム選択・作成モーダル -->
+    <div id="roomSelectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-white/20">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-base font-black text-slate-800">ルームの切り替え・作成</h3>
+                <button id="closeRoomModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-600">新規ルーム名</label>
+                <div class="flex gap-2">
+                    <input type="text" id="newRoomNameInput" placeholder="例: グッズ共同購入" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
+                    <button id="createNewRoomBtn" class="px-3 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow">作成</button>
+                </div>
+            </div>
+            <div class="space-y-2 pt-2 border-t">
+                <label class="block text-xs font-bold text-slate-600">利用可能なルーム</label>
+                <div id="roomListContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    <!-- 動的生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共有用モーダル -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 border border-white/20">
+            <h3 class="text-base font-black text-slate-800">グループ共有</h3>
+            <p class="text-xs text-slate-500">このルームの共有リンクを友達に送信してリアルタイムに同期できます</p>
+            <div class="bg-slate-100 p-3 rounded-2xl break-all text-xs font-mono select-all border" id="shareUrlText"></div>
+            <button id="copyShareUrlBtn" class="w-full py-2.5 rainbow-bg text-white font-bold rounded-xl text-xs shadow hover:opacity-95">
+                <i class="fa-solid fa-copy mr-1"></i> 共有リンクをコピー
+            </button>
+            <button id="closeShareModalBtn" class="w-full py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs">閉じる</button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="glass-card bg-slate-900/90 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toastMessage" class="text-xs font-bold">完了しました</span>
+        </div>
+    </div>
+
+    <!-- Firebase Standard Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-app';
         let firebaseConfig = null;
         if (typeof __firebase_config !== 'undefined') {
-            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
+        }
+        if (!firebaseConfig) {
+            firebaseConfig = { apiKey: "demo-api-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
         }
 
-        if (firebaseConfig) {
-            window.firebaseApp = initializeApp(firebaseConfig);
-            window.firebaseDb = getFirestore(window.firebaseApp);
-            window.firebaseAuth = getAuth(window.firebaseApp);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-            // Authentication Setup
-            const initAuth = async () => {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(window.firebaseAuth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(window.firebaseAuth);
-                    }
-                    console.log("Firebase Auth Connected:", window.firebaseAuth.currentUser?.uid);
-                    window.dispatchEvent(new CustomEvent('firebase-ready'));
-                } catch (err) {
-                    console.error("Firebase Auth Error:", err);
-                    window.dispatchEvent(new CustomEvent('firebase-error', { detail: err }));
+        window.firebaseDb = db;
+        window.firebaseAuth = auth;
+        window.appId = appId;
+
+        // Auth initialization
+        (async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
-            };
-            initAuth();
-        } else {
-            console.warn("Firebase Config not supplied. Using local fallback.");
-        }
+            } catch (err) {
+                console.warn("Auth initialization error:", err);
+            }
+        })();
 
-        // Firebase Sync Helper Functions
+        // Firestore Realtime Subscription Helper
         window.subscribeToRoomRealtime = function(roomId, onDataReceived) {
             if (window.unsubscribeRoom) {
                 window.unsubscribeRoom();
                 window.unsubscribeRoom = null;
             }
 
+            const dot = document.getElementById('syncStatusDot');
+            const text = document.getElementById('syncStatusText');
+
             if (!window.firebaseDb || !window.firebaseAuth?.currentUser) {
-                // Fallback to local storage
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+                if (text) text.textContent = "ローカル（未同期）";
                 onDataReceived(getRoomRecords(roomId));
                 return;
             }
 
-            // Public path (Rule 1 STRICT compliant)
             const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`);
+
+            if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+            if (text) text.textContent = "リアルタイム同期中";
 
             window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
                 const fetchedRecords = [];
@@ -116,970 +336,333 @@
                 fetchedRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 onDataReceived(fetchedRecords);
             }, (error) => {
-                console.error("Firestore Snapshot Error:", error);
-                const dot = document.getElementById('syncStatusDot');
-                const text = document.getElementById('syncStatusText');
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-rose-500";
-                if (text) text.textContent = "同期エラー (ローカル表示中)";
+                console.warn("Firestore error, fallback to local:", error);
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+                if (text) text.textContent = "オフライン表示";
                 onDataReceived(getRoomRecords(roomId));
             });
         };
 
         window.saveRecordToCloud = async function(roomId, record) {
-            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return;
+            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return false;
             try {
                 const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, record.id);
                 await setDoc(docRef, record);
+                return true;
             } catch (e) {
-                console.error("Error saving record:", e);
+                console.error("Cloud save failed:", e);
+                return false;
             }
         };
 
         window.deleteRecordFromCloud = async function(roomId, recordId) {
-            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return;
+            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return false;
             try {
                 const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, recordId);
                 await deleteDoc(docRef);
+                return true;
             } catch (e) {
-                console.error("Error deleting record:", e);
+                console.error("Cloud delete failed:", e);
+                return false;
             }
         };
     </script>
 
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.4);
-            border-radius: 9999px;
-        }
-    </style>
-</head>
-<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-blue-500 selection:text-white">
-
-    <!-- App Lock Barrier Overlay -->
-    <div id="appLockOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center space-y-4 shadow-2xl border border-slate-100">
-            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-sm">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <div>
-                <h2 class="font-bold text-slate-900 text-lg">パスコード入力</h2>
-                <p class="text-xs text-slate-500 mt-1">このページを閲覧・利用するにはパスコードが必要です</p>
-            </div>
-            <div class="space-y-3">
-                <input type="password" id="entryPasscodeCode" placeholder="••••" maxlength="12"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="unlockAppBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm shadow-md shadow-blue-500/20 active:scale-95 transition-all">
-                    ロック解除
-                </button>
-            </div>
-            <p id="entryErrorMsg" class="text-xs font-semibold text-rose-500 hidden">パスコードが違います</p>
-        </div>
-    </div>
-
-    <!-- Main Header -->
-    <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 py-3">
-        <div class="max-w-xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex items-center justify-center bg-white p-0.5 border border-slate-100">
-                    <svg viewBox="0 0 200 200" width="100%" height="100%">
-                        <rect width="200" height="200" fill="white"/>
-                        <g transform="translate(100,100)">
-                            <g transform="translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#d93829"/></g>
-                            <g transform="rotate(51.4) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#e88732"/></g>
-                            <g transform="rotate(102.8) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#f1cf47"/></g>
-                            <g transform="rotate(154.2) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#226a3c"/></g>
-                            <g transform="rotate(205.7) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#3fb1e5"/></g>
-                            <g transform="rotate(257.1) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#282b82"/></g>
-                            <g transform="rotate(308.5) translate(0,-68)"><path d="M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z" fill="#5b2e7f"/></g>
-                            <circle r="44" fill="#d93829" stroke="#111111" stroke-width="6"/>
-                            <path d="M-25,18 Q0,38 25,18" fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
-                            <line x1="-28" y1="14" x2="-22" y2="22" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
-                            <line x1="28" y1="14" x2="22" y2="22" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
-                            <rect x="-44" y="-18" width="88" height="26" fill="#111111"/>
-                            <line x1="-28" y1="-32" x2="-16" y2="-20" stroke="#e85292" stroke-width="5" stroke-linecap="round"/>
-                            <line x1="-14" y1="-36" x2="-2" y2="-24" stroke="#f1cf47" stroke-width="5" stroke-linecap="round"/>
-                            <line x1="0" y1="-38" x2="12" y2="-26" stroke="#282b82" stroke-width="5" stroke-linecap="round"/>
-                            <text x="0" y="-4" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="30" fill="white" text-anchor="middle" dominant-baseline="middle">N</text>
-                        </g>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="font-black text-slate-900 text-base leading-tight tracking-tight">虹色オーダー</h1>
-                    <p class="text-[11px] text-slate-500 flex items-center gap-1">
-                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span id="syncStatusText">リアルタイム同期中</span>
-                    </p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <button id="lockAppBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95" title="画面をロック">
-                    <i class="fa-solid fa-lock text-slate-600"></i>
-                </button>
-                <button id="modeToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95">
-                    <i id="modeIcon" class="fa-solid fa-user text-blue-600"></i>
-                    <span id="modeText">一般モード</span>
-                </button>
-                <button id="shareRoomBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all active:scale-95" title="共有">
-                    <i class="fa-solid fa-share-nodes text-blue-600"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-4 pb-28">
-
-        <!-- Room Banner -->
-        <div class="bg-slate-900 text-white p-3.5 rounded-2xl shadow-md flex justify-between items-center">
-            <div class="flex items-center gap-2 min-w-0">
-                <i class="fa-solid fa-layer-group text-blue-400 text-sm flex-shrink-0"></i>
-                <span class="text-xs text-slate-300 flex-shrink-0">現在のルーム:</span>
-                <span id="roomIdDisplay" class="text-sm font-bold text-blue-300 truncate">メインルーム</span>
-            </div>
-            <button id="changeRoomBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-200 font-medium active:scale-95 transition-all border border-slate-700 flex-shrink-0">
-                ルーム切替
-            </button>
-        </div>
-
-        <!-- Dashboard Section -->
-        <section id="dashboardSection" class="space-y-3">
-            <div id="userSummaryCard" class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/15">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-user-check text-blue-200"></i>
-                        <span class="text-xs font-semibold text-blue-100">あなたの購入合計</span>
-                    </div>
-                    <span id="myBuyerNameBadge" class="text-xs bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm font-medium">未設定</span>
-                </div>
-                <div class="flex items-baseline justify-between mt-1">
-                    <div>
-                        <span id="myTotalAmount" class="text-3xl font-black tracking-tight">¥0</span>
-                    </div>
-                    <div class="text-right">
-                        <span id="myTotalQty" class="text-xl font-bold">0</span>
-                        <span class="text-xs text-blue-200"> 点</span>
-                    </div>
-                </div>
-                <div class="mt-2 pt-2 border-t border-white/10 text-[11px] text-blue-100/80 flex items-center justify-between">
-                    <span>※ あなたが追加した購入明細の合計です</span>
-                    <span id="myRecordCount">0件</span>
-                </div>
-            </div>
-
-            <!-- Admin Summary View -->
-            <div id="adminSummaryCard" class="hidden space-y-3">
-                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
-                    <span class="font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
-                        管理者モード表示中
-                    </span>
-                    <button id="exitAdminBtn" class="text-amber-900 underline text-[11px] font-semibold">一般モードへ</button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                        <div class="text-xs font-semibold text-slate-500 flex items-center justify-between">
-                            <span>全参加者総合計</span>
-                            <i class="fa-solid fa-coins text-amber-500 bg-amber-50 p-1.5 rounded-lg"></i>
-                        </div>
-                        <div class="mt-2">
-                            <span id="grandTotalAmount" class="text-2xl font-black text-slate-900">¥0</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                        <div class="text-xs font-semibold text-slate-500 flex items-center justify-between">
-                            <span>総販売個数</span>
-                            <i class="fa-solid fa-boxes-stacked text-indigo-500 bg-indigo-50 p-1.5 rounded-lg"></i>
-                        </div>
-                        <div class="mt-2">
-                            <span id="grandTotalQuantity" class="text-2xl font-black text-slate-900">0</span>
-                            <span class="text-xs text-slate-500"> 点</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl border border-amber-200/80 shadow-sm overflow-hidden">
-                    <div class="p-3.5 border-b border-amber-100 bg-amber-50/50 flex items-center justify-between">
-                        <h2 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                            <i class="fa-solid fa-boxes-packing text-amber-600"></i>
-                            <span>商品別の集計＆合計数量</span>
-                        </h2>
-                        <span id="productCountTag" class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">0種</span>
-                    </div>
-                    <div id="productSummaryList" class="divide-y divide-slate-100 max-h-56 overflow-y-auto">
-                        <div class="p-3 text-center text-xs text-slate-400">データがありません</div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                    <div class="p-3.5 border-b border-slate-100 flex items-center justify-between">
-                        <h2 class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                            <i class="fa-solid fa-users text-blue-600"></i>
-                            <span>参加者別の合計内訳</span>
-                        </h2>
-                        <span id="personCountTag" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0名</span>
-                    </div>
-                    <div id="personSummaryList" class="divide-y divide-slate-100 max-h-40 overflow-y-auto">
-                        <div class="p-3 text-center text-xs text-slate-400">データがありません</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Multi-item Entry Form Section -->
-        <section class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-cart-plus text-emerald-600 text-base"></i>
-                    <span>購入注文の一括登録</span>
-                </h2>
-                <span class="text-[11px] text-slate-400">＋ボタンで複数追加</span>
-            </div>
-
-            <form id="multiPurchaseForm" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">
-                        お名前（購入者名） <span class="text-rose-500">*</span>
-                    </label>
-                    <div class="flex gap-2">
-                        <input type="text" id="buyerInput" placeholder="例: 鈴木太郎" required
-                            class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
-                        <select id="buyerSelect" class="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">履歴から選択</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <label class="block text-xs font-bold text-slate-700">購入アイテム明細</label>
-                    <div id="itemsContainer" class="space-y-2.5"></div>
-                    <button type="button" id="addRowBtn" class="w-full py-2.5 border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl text-blue-600 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all">
-                        <i class="fa-solid fa-plus-circle"></i>
-                        <span>＋ 行を追加する</span>
-                    </button>
-                </div>
-
-                <div class="bg-slate-50 p-3 rounded-xl flex justify-between items-center text-xs font-bold text-slate-700">
-                    <span>今回追加する合計金額:</span>
-                    <span id="formTotalPreview" class="text-lg font-black text-blue-600">¥0</span>
-                </div>
-
-                <button type="submit" id="submitBtn" class="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    <span>この内容で登録する</span>
-                </button>
-            </form>
-        </section>
-
-        <!-- Records List Section -->
-        <section class="space-y-3">
-            <div class="flex items-center justify-between px-1">
-                <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-list-ul text-slate-600"></i>
-                    <span id="recordsTitle">自分の登録済み明細</span>
-                </h2>
-
-                <div id="adminFilterWrapper" class="hidden">
-                    <select id="filterBuyer" class="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs text-slate-600 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="ALL">全員の明細を表示</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="recordsList" class="space-y-2">
-                <div class="bg-white p-6 rounded-2xl text-center text-xs text-slate-400 border border-slate-200/80">
-                    明細はありません
-                </div>
-            </div>
-        </section>
-
-        <!-- Admin Actions Bar -->
-        <section id="adminActionsSection" class="hidden space-y-2 pt-2">
-            <button id="createNewRoomBtn" class="w-full flex items-center justify-center gap-2 p-3 bg-blue-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95 transition-all">
-                <i class="fa-solid fa-plus-circle text-sm"></i>
-                新しいルームを作成する
-            </button>
-            <div class="grid grid-cols-2 gap-2">
-                <button id="copySummaryBtn" class="flex items-center justify-center gap-2 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100 rounded-2xl font-bold text-xs active:scale-95 transition-all">
-                    <i class="fa-solid fa-copy text-sm"></i>
-                    LINE用テキストコピー
-                </button>
-                <button id="exportCsvBtn" class="flex items-center justify-center gap-2 p-3 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 rounded-2xl font-bold text-xs active:scale-95 transition-all">
-                    <i class="fa-solid fa-file-csv text-sm"></i>
-                    CSVダウンロード
-                </button>
-            </div>
-            <button id="changePasscodeBtn" class="w-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-2xl py-2.5 font-bold text-xs transition-all flex items-center justify-center gap-1.5 mt-2">
-                <i class="fa-solid fa-key text-slate-400"></i>
-                パスコードの変更
-            </button>
-        </section>
-
-    </main>
-
-    <!-- Modals & Toasts -->
-    <div id="customModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-xs w-full p-5 space-y-4 shadow-xl border border-slate-100">
-            <h3 id="modalTitle" class="font-bold text-slate-900 text-base text-center"></h3>
-            <div id="modalBody" class="text-xs text-slate-600 space-y-2"></div>
-            <div id="modalActions" class="flex gap-2 pt-2"></div>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
-        <span id="toastMsg">処理完了</span>
-    </div>
-
-    <!-- Application Controller Script -->
     <script>
-        // State variables
-        let activeRoomId = localStorage.getItem('active_room_id') || 'main_room';
-        let availableRooms = JSON.parse(localStorage.getItem('rainbow_rooms_list') || '[]');
-        if (availableRooms.length === 0) {
-            availableRooms = [{ id: 'main_room', name: 'メインルーム', createdAt: new Date().toISOString() }];
-            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
+        // --- SVG App Logo Generation (7 Rainbow Hearts + Smiley N Logo) ---
+        const rainbowLogoSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full">
+            <g transform="translate(120,32)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#ef4444"/>
+            </g>
+            <g transform="translate(182,58)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#f97316"/>
+            </g>
+            <g transform="translate(195,125)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#eab308"/>
+            </g>
+            <g transform="translate(162,185)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#22c55e"/>
+            </g>
+            <g transform="translate(78,185)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#06b6d4"/>
+            </g>
+            <g transform="translate(45,125)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#6366f1"/>
+            </g>
+            <g transform="translate(58,58)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#a855f7"/>
+            </g>
+
+            <circle cx="120" cy="120" r="54" fill="#ef4444" stroke="#1e293b" stroke-width="6"/>
+            <path d="M 70 120 L 170 120" stroke="#1e293b" stroke-width="28"/>
+            <path d="M 88 88 L 100 70 M 110 88 L 122 70 M 132 88 L 144 70" stroke="#f43f5e" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 120 88 L 132 70" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 142 88 L 154 70" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round"/>
+            <text x="120" y="129" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
+            <path d="M 94 148 Q 120 172 146 148" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+            <line x1="90" y1="148" x2="98" y2="148" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+            <line x1="142" y1="148" x2="150" y2="148" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        `;
+
+        // SVG & PNG Icon setup for iOS / PWA
+        function setupIcons() {
+            const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(rainbowLogoSvg);
+            document.getElementById('lockAppLogo').innerHTML = rainbowLogoSvg;
+            document.getElementById('headerAppLogo').innerHTML = rainbowLogoSvg;
+            document.getElementById('faviconIcon').href = svgUrl;
+
+            // Generate PNG data URI for iOS Apple Touch Icon
+            const img = new Image();
+            img.src = svgUrl;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 180;
+                canvas.height = 180;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 180, 180);
+                ctx.drawImage(img, 0, 0, 180, 180);
+                document.getElementById('appleTouchIcon').href = canvas.toDataURL('image/png');
+            };
         }
 
-        let isAdminMode = false;
-        let entryPasscode = localStorage.getItem('app_entry_passcode') || "0516";
-        let adminPasscode = localStorage.getItem('app_admin_passcode') || "1234";
-        let isAppUnlocked = sessionStorage.getItem('app_is_unlocked') === 'true';
-        let records = [];
+        // --- Global Application State ---
+        const USER_PASSCODE = "0516";
+        const ADMIN_PASSCODE = "1234";
 
-        // DOM Elements
-        const appLockOverlay = document.getElementById('appLockOverlay');
-        const entryPasscodeCode = document.getElementById('entryPasscodeCode');
-        const unlockAppBtn = document.getElementById('unlockAppBtn');
-        const entryErrorMsg = document.getElementById('entryErrorMsg');
+        let currentMode = "user"; // "user" or "admin"
+        let activeRoomId = "default";
+        let roomRecordsMap = {};
 
-        const roomIdDisplay = document.getElementById('roomIdDisplay');
-        const buyerInput = document.getElementById('buyerInput');
-        const buyerSelect = document.getElementById('buyerSelect');
-        const itemsContainer = document.getElementById('itemsContainer');
-        const addRowBtn = document.getElementById('addRowBtn');
-        const formTotalPreview = document.getElementById('formTotalPreview');
-        const multiPurchaseForm = document.getElementById('multiPurchaseForm');
-        
-        const modeToggleBtn = document.getElementById('modeToggleBtn');
-        const modeText = document.getElementById('modeText');
-        const modeIcon = document.getElementById('modeIcon');
-        const userSummaryCard = document.getElementById('userSummaryCard');
-        const adminSummaryCard = document.getElementById('adminSummaryCard');
-        const adminActionsSection = document.getElementById('adminActionsSection');
-        const adminFilterWrapper = document.getElementById('adminFilterWrapper');
-        const recordsTitle = document.getElementById('recordsTitle');
-
-        const myTotalAmount = document.getElementById('myTotalAmount');
-        const myTotalQty = document.getElementById('myTotalQty');
-        const myRecordCount = document.getElementById('myRecordCount');
-        const myBuyerNameBadge = document.getElementById('myBuyerNameBadge');
-
-        const grandTotalAmount = document.getElementById('grandTotalAmount');
-        const grandTotalQuantity = document.getElementById('grandTotalQuantity');
-        const personSummaryList = document.getElementById('personSummaryList');
-        const personCountTag = document.getElementById('personCountTag');
-        const filterBuyer = document.getElementById('filterBuyer');
-        const recordsList = document.getElementById('recordsList');
-
-        // MODE SWITCHING & UI FUNCTIONS
-        function toggleMode() {
-            if (isAdminMode) {
-                isAdminMode = false;
-                updateModeUI();
-            } else {
-                showModal({
-                    title: "管理者モード認証",
-                    body: `
-                        <div class="space-y-2">
-                            <p class="text-slate-500 text-center">管理者用パスコードを入力してください</p>
-                            <input type="password" id="adminPassInput" placeholder="••••" maxlength="12"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                    `,
-                    actions: [
-                        { label: "キャンセル", type: "secondary", onClick: closeModal },
-                        {
-                            label: "認証",
-                            type: "primary",
-                            onClick: () => {
-                                const pass = document.getElementById('adminPassInput').value.trim();
-                                if (pass === adminPasscode) {
-                                    isAdminMode = true;
-                                    closeModal();
-                                    updateModeUI();
-                                    showToast("管理者モードに切り替えました", "fa-shield-halved text-amber-400");
-                                } else {
-                                    showToast("パスコードが違います", "fa-circle-xmark text-rose-400");
-                                }
-                            }
-                        }
-                    ]
-                });
-            }
-        }
-
-        function updateModeUI() {
-            if (isAdminMode) {
-                modeText.textContent = "管理者モード";
-                modeIcon.className = "fa-solid fa-shield-halved text-amber-500";
-                adminSummaryCard.classList.remove('hidden');
-                adminActionsSection.classList.remove('hidden');
-                adminFilterWrapper.classList.remove('hidden');
-                recordsTitle.textContent = "全体データ管理";
-            } else {
-                modeText.textContent = "一般モード";
-                modeIcon.className = "fa-solid fa-user text-blue-600";
-                adminSummaryCard.classList.add('hidden');
-                adminActionsSection.classList.add('hidden');
-                adminFilterWrapper.classList.add('hidden');
-                recordsTitle.textContent = "自分の登録済み明細";
-            }
-            renderAll();
-        }
-
-        // ROOM SELECT & MODAL FUNCTIONS
-        function openRoomSelectModal() {
-            const roomListHtml = availableRooms.map(r => `
-                <div class="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl flex justify-between items-center cursor-pointer transition-colors ${r.id === activeRoomId ? 'border-2 border-blue-500 font-bold' : 'border border-slate-200'}"
-                     onclick="switchRoom('${r.id}')">
-                    <span class="text-xs text-slate-800">${escapeHtml(r.name)}</span>
-                    ${r.id === activeRoomId ? '<i class="fa-solid fa-check text-blue-600 text-xs"></i>' : ''}
-                </div>
-            `).join('');
-
-            showModal({
-                title: "ルーム選択",
-                body: `<div class="space-y-2 max-h-60 overflow-y-auto">${roomListHtml}</div>`,
-                actions: [
-                    { label: "閉じる", type: "secondary", onClick: closeModal }
-                ]
-            });
-        }
-
-        window.switchRoom = function(roomId) {
-            activeRoomId = roomId;
-            localStorage.setItem('active_room_id', roomId);
-            closeModal();
-            loadRoomData(roomId);
-            showToast("ルームを切り替えました", "fa-layer-group text-blue-400");
-        };
-
-        function openCreateRoomModal() {
-            showModal({
-                title: "新規ルーム作成",
-                body: `
-                    <div class="space-y-2">
-                        <label class="block text-xs text-slate-600 font-bold">ルーム名</label>
-                        <input type="text" id="newRoomNameInput" placeholder="例: 5月買付用"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                `,
-                actions: [
-                    { label: "キャンセル", type: "secondary", onClick: closeModal },
-                    {
-                        label: "作成",
-                        type: "primary",
-                        onClick: () => {
-                            const name = document.getElementById('newRoomNameInput').value.trim();
-                            if (!name) {
-                                showToast("ルーム名を入力してください", "fa-triangle-exclamation text-amber-400");
-                                return;
-                            }
-                            const newRoom = {
-                                id: 'room_' + Date.now(),
-                                name: name,
-                                createdAt: new Date().toISOString()
-                            };
-                            availableRooms.push(newRoom);
-                            localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
-                            closeModal();
-                            switchRoom(newRoom.id);
-                        }
-                    }
-                ]
-            });
-        }
-
-        function checkAppLockState() {
-            if (isAppUnlocked) {
-                appLockOverlay.classList.add('hidden');
-            } else {
-                appLockOverlay.classList.remove('hidden');
-            }
-        }
-
-        function tryUnlockApp() {
-            const inputVal = entryPasscodeCode.value.trim();
-            if (inputVal === entryPasscode) {
-                isAppUnlocked = true;
-                sessionStorage.setItem('app_is_unlocked', 'true');
-                entryErrorMsg.classList.add('hidden');
-                entryPasscodeCode.value = '';
-                checkAppLockState();
-                showToast("ロックを解除しました", "fa-lock-open text-emerald-400");
-            } else {
-                entryErrorMsg.classList.remove('hidden');
-                entryPasscodeCode.value = '';
-            }
-        }
-
+        // Helper storage functions
         function getRoomRecords(roomId) {
-            try {
-                const raw = localStorage.getItem(`local_room_data_${roomId}`);
-                return raw ? JSON.parse(raw) : [];
-            } catch (e) {
-                return [];
-            }
+            const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
+            return stored ? JSON.parse(stored) : [];
+        }
+        function saveRoomRecords(roomId, records) {
+            localStorage.setItem(`nijiiro_room_${roomId}`, JSON.stringify(records));
         }
 
-        function saveRoomRecords(roomId, data) {
-            try {
-                localStorage.setItem(`local_room_data_${roomId}`, JSON.stringify(data));
-            } catch (e) {}
+        // Toast Helper
+        function showToast(msg, iconClass = "fa-circle-check text-emerald-400") {
+            const toast = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = msg;
+            toastIcon.className = `fa-solid ${iconClass}`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
         }
 
-        function loadRoomData(roomId) {
-            updateRoomBadge();
-
-            if (typeof window.subscribeToRoomRealtime === 'function') {
-                window.subscribeToRoomRealtime(roomId, (cloudRecords) => {
-                    records = cloudRecords;
-                    saveRoomRecords(roomId, records);
-                    renderAll();
-                });
-            } else {
-                records = getRoomRecords(roomId);
-                renderAll();
-            }
-        }
-
-        function updateRoomBadge() {
-            const found = availableRooms.find(r => r.id === activeRoomId);
-            roomIdDisplay.textContent = found ? found.name : 'メインルーム';
-        }
-
+        // --- Dynamic Form Row Management ---
         function addNewItemRow() {
+            const container = document.getElementById('itemRowsContainer');
             const rowId = 'row_' + Date.now() + Math.random().toString(36).substring(2, 5);
-            const row = document.createElement('div');
-            row.className = 'item-row flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200/80';
-            row.id = rowId;
 
+            const row = document.createElement('div');
+            row.className = "item-row flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200";
+            row.id = rowId;
             row.innerHTML = `
-                <input type="text" placeholder="商品名 (例: 缶バッジ)" class="item-name flex-1 bg-white border border-slate-200 rounded-lg p-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <input type="number" placeholder="金額" class="item-price w-20 bg-white border border-slate-200 rounded-lg p-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 text-right" min="0">
-                <div class="flex items-center bg-white border border-slate-200 rounded-lg p-1">
-                    <button type="button" class="qty-minus w-5 h-5 flex items-center justify-center text-slate-500 hover:text-slate-800 text-xs">-</button>
-                    <input type="number" value="1" min="1" class="item-qty w-7 text-center text-xs font-bold focus:outline-none">
-                    <button type="button" class="qty-plus w-5 h-5 flex items-center justify-center text-slate-500 hover:text-slate-800 text-xs">+</button>
+                <div class="flex-1">
+                    <input type="text" class="item-name w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500" placeholder="商品名" required>
                 </div>
-                <button type="button" class="remove-row-btn text-slate-400 hover:text-rose-500 p-1 text-xs">
-                    <i class="fa-solid fa-trash-can"></i>
+                <div class="w-20">
+                    <input type="number" class="item-price w-full px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-right focus:outline-none focus:border-indigo-500" placeholder="単価" min="0" required>
+                </div>
+                <div class="w-16">
+                    <input type="number" class="item-qty w-full px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-center focus:outline-none focus:border-indigo-500" value="1" min="1" required>
+                </div>
+                <button type="button" class="remove-row-btn p-2 text-slate-400 hover:text-rose-500 transition-all">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
                 </button>
             `;
 
-            itemsContainer.appendChild(row);
+            container.appendChild(row);
 
-            const nameInput = row.querySelector('.item-name');
-            const priceInput = row.querySelector('.item-price');
-            const qtyInput = row.querySelector('.item-qty');
-            const minusBtn = row.querySelector('.qty-minus');
-            const plusBtn = row.querySelector('.qty-plus');
-            const removeBtn = row.querySelector('.remove-row-btn');
-
-            const calculateFormTotal = () => {
-                let total = 0;
-                document.querySelectorAll('.item-row').forEach(r => {
-                    const price = parseFloat(r.querySelector('.item-price').value) || 0;
-                    const qty = parseInt(r.querySelector('.item-qty').value) || 1;
-                    total += price * qty;
-                });
-                formTotalPreview.textContent = `¥${total.toLocaleString()}`;
-            };
-
-            nameInput.addEventListener('input', calculateFormTotal);
-            priceInput.addEventListener('input', calculateFormTotal);
-            qtyInput.addEventListener('input', calculateFormTotal);
-
-            minusBtn.addEventListener('click', () => {
-                let val = parseInt(qtyInput.value) || 1;
-                if (val > 1) {
-                    qtyInput.value = val - 1;
-                    calculateFormTotal();
-                }
-            });
-
-            plusBtn.addEventListener('click', () => {
-                let val = parseInt(qtyInput.value) || 1;
-                qtyInput.value = val + 1;
-                calculateFormTotal();
-            });
-
-            removeBtn.addEventListener('click', () => {
+            row.querySelector('.remove-row-btn').addEventListener('click', () => {
                 if (document.querySelectorAll('.item-row').length > 1) {
                     row.remove();
-                    calculateFormTotal();
                 } else {
-                    showToast("最低1つの行が必要です", "fa-triangle-exclamation text-amber-400");
+                    showToast("少なくとも1つの商品行が必要です", "fa-triangle-exclamation text-amber-400");
                 }
             });
         }
 
-        function resetForm() {
-            itemsContainer.innerHTML = '';
-            addNewItemRow();
-            formTotalPreview.textContent = '¥0';
-        }
+        // Render Records Table
+        function renderRecords(records) {
+            const tbody = document.getElementById('recordsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const totalText = document.getElementById('totalAmountText');
 
-        function renderAll() {
-            renderUserSummary();
-            renderAdminSummary();
-            renderBuyerSelectOptions();
-            renderRecordsList();
-        }
+            tbody.innerHTML = '';
+            let grandTotal = 0;
 
-        function renderUserSummary() {
-            const currentBuyer = buyerInput.value.trim();
-            myBuyerNameBadge.textContent = currentBuyer || '未設定';
-
-            const myRecords = records.filter(r => r.buyer === currentBuyer);
-            let totalAmt = 0;
-            let totalQty = 0;
-
-            myRecords.forEach(r => {
-                totalAmt += r.price * r.qty;
-                totalQty += r.qty;
-            });
-
-            myTotalAmount.textContent = `¥${totalAmt.toLocaleString()}`;
-            myTotalQty.textContent = totalQty;
-            myRecordCount.textContent = `${myRecords.length}件`;
-        }
-
-        function renderAdminSummary() {
-            if (!isAdminMode) return;
-
-            let grandAmt = 0;
-            let grandQty = 0;
-            const personMap = {};
-            const productMap = {};
-
-            records.forEach(r => {
-                const subtotal = r.price * r.qty;
-                grandAmt += subtotal;
-                grandQty += r.qty;
-
-                if (!personMap[r.buyer]) {
-                    personMap[r.buyer] = { qty: 0, amount: 0 };
-                }
-                personMap[r.buyer].qty += r.qty;
-                personMap[r.buyer].amount += subtotal;
-
-                const prodName = r.adminItem || r.item || '未分類';
-                if (!productMap[prodName]) {
-                    productMap[prodName] = { qty: 0, amount: 0 };
-                }
-                productMap[prodName].qty += r.qty;
-                productMap[prodName].amount += subtotal;
-            });
-
-            grandTotalAmount.textContent = `¥${grandAmt.toLocaleString()}`;
-            grandTotalQuantity.textContent = grandQty;
-
-            const productKeys = Object.keys(productMap);
-            const productSummaryList = document.getElementById('productSummaryList');
-            const productCountTag = document.getElementById('productCountTag');
-            productCountTag.textContent = `${productKeys.length}種`;
-
-            if (productKeys.length === 0) {
-                productSummaryList.innerHTML = '<div class="p-3 text-center text-xs text-slate-400">データがありません</div>';
-            } else {
-                productSummaryList.innerHTML = productKeys.map(key => `
-                    <div class="p-3 flex items-center justify-between text-xs hover:bg-slate-50 transition-colors">
-                        <div class="font-bold text-slate-800">${escapeHtml(key)}</div>
-                        <div class="text-right">
-                            <span class="font-bold text-indigo-600">${productMap[key].qty} 個</span>
-                            <span class="text-slate-400 text-[11px] ml-1.5">(¥${productMap[key].amount.toLocaleString()})</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            const personKeys = Object.keys(personMap);
-            personCountTag.textContent = `${personKeys.length}名`;
-
-            if (personKeys.length === 0) {
-                personSummaryList.innerHTML = '<div class="p-3 text-center text-xs text-slate-400">データがありません</div>';
-            } else {
-                personSummaryList.innerHTML = personKeys.map(key => `
-                    <div class="p-3 flex items-center justify-between text-xs hover:bg-slate-50 transition-colors">
-                        <div class="font-bold text-slate-800 flex items-center gap-1.5">
-                            <i class="fa-solid fa-user text-slate-400 text-[10px]"></i>
-                            <span>${escapeHtml(key)}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="font-black text-slate-900">¥${personMap[key].amount.toLocaleString()}</span>
-                            <span class="text-slate-400 text-[11px] ml-1">(${personMap[key].qty}点)</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function renderBuyerSelectOptions() {
-            const buyers = Array.from(new Set(records.map(r => r.buyer))).filter(Boolean);
-            
-            buyerSelect.innerHTML = '<option value="">履歴から選択</option>' + 
-                buyers.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
-
-            filterBuyer.innerHTML = '<option value="ALL">全員の明細を表示</option>' + 
-                buyers.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}のみ表示</option>`).join('');
-        }
-
-        function renderRecordsList() {
-            const currentBuyer = buyerInput.value.trim();
-            const selectedFilter = filterBuyer.value;
-
-            let displayRecords = [];
-
-            if (isAdminMode) {
-                if (selectedFilter === 'ALL') {
-                    displayRecords = [...records];
-                } else {
-                    displayRecords = records.filter(r => r.buyer === selectedFilter);
-                }
-            } else {
-                displayRecords = records.filter(r => r.buyer === currentBuyer);
-            }
-
-            if (displayRecords.length === 0) {
-                recordsList.innerHTML = `
-                    <div class="bg-white p-6 rounded-2xl text-center text-xs text-slate-400 border border-slate-200/80">
-                        ${isAdminMode ? '登録されている明細はありません' : 'あなたの登録済み明細はありません'}
-                    </div>
-                `;
+            if (!records || records.length === 0) {
+                emptyState.classList.remove('hidden');
+                totalText.textContent = '¥0';
                 return;
             }
 
-            recordsList.innerHTML = displayRecords.map(r => `
-                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            ${isAdminMode ? `<span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">${escapeHtml(r.buyer)}</span>` : ''}
-                            <span class="font-bold text-xs text-slate-800 truncate">${escapeHtml(r.item)}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-500 flex items-center gap-2">
-                            <span>単価: ¥${r.price.toLocaleString()}</span>
-                            <span>×</span>
-                            <span>数量: ${r.qty}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 flex-shrink-0">
-                        <div class="text-right">
-                            <span class="font-black text-slate-900 text-sm">¥${(r.price * r.qty).toLocaleString()}</span>
-                        </div>
-                        <button onclick="confirmDelete('${r.id}')" class="p-2 text-slate-300 hover:text-rose-500 transition-colors">
-                            <i class="fa-solid fa-trash-can text-xs"></i>
+            emptyState.classList.add('hidden');
+
+            records.forEach(rec => {
+                const price = Number(rec.price) || 0;
+                const qty = Number(rec.qty) || 1;
+                const subtotal = price * qty;
+                grandTotal += subtotal;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-all";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${escapeHtml(rec.buyer)}</td>
+                    <td class="p-3 text-slate-700 font-medium">${escapeHtml(rec.item)}</td>
+                    <td class="p-3 text-right text-slate-500">¥${price.toLocaleString()}</td>
+                    <td class="p-3 text-center font-bold text-slate-700">${qty}</td>
+                    <td class="p-3 text-right font-black text-indigo-600">¥${subtotal.toLocaleString()}</td>
+                    <td class="p-3 text-center">
+                        <button class="delete-record-btn p-1.5 text-slate-300 hover:text-rose-500 transition-all" data-id="${rec.id}">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
-                    </div>
-                </div>
-            `).join('');
+                    </td>
+                `;
+
+                tr.querySelector('.delete-record-btn').addEventListener('click', async () => {
+                    if (confirm('この注文を削除しますか？')) {
+                        if (window.deleteRecordFromCloud) {
+                            await window.deleteRecordFromCloud(activeRoomId, rec.id);
+                        }
+                        const current = getRoomRecords(activeRoomId).filter(r => r.id !== rec.id);
+                        saveRoomRecords(activeRoomId, current);
+                        showToast("注文を削除しました", "fa-circle-check text-emerald-400");
+                        loadRoomData(activeRoomId);
+                    }
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            totalText.textContent = `¥${grandTotal.toLocaleString()}`;
         }
 
-        window.confirmDelete = function(recordId) {
-            showModal({
-                title: "明細の削除",
-                body: "<p class='text-center text-slate-600'>この明細を削除してもよろしいですか？</p>",
-                actions: [
-                    { label: "キャンセル", type: "secondary", onClick: closeModal },
-                    {
-                        label: "削除",
-                        type: "danger",
-                        onClick: () => {
-                            if (window.deleteRecordFromCloud) {
-                                window.deleteRecordFromCloud(activeRoomId, recordId);
-                            }
-                            records = records.filter(r => r.id !== recordId);
-                            saveRoomRecords(activeRoomId, records);
-                            closeModal();
-                            renderAll();
-                            showToast("明細を削除しました", "fa-trash-can text-rose-400");
-                        }
-                    }
-                ]
-            });
-        };
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, match => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[match]);
+        }
 
-        // INITIALIZATION
+        // Room Data Loading
+        function loadRoomData(roomId) {
+            activeRoomId = roomId;
+            const badge = document.getElementById('currentRoomBadge');
+            badge.textContent = roomId === 'default' ? 'メイン' : roomId;
+
+            if (window.subscribeToRoomRealtime) {
+                window.subscribeToRoomRealtime(roomId, (fetchedRecords) => {
+                    saveRoomRecords(roomId, fetchedRecords);
+                    renderRecords(fetchedRecords);
+                });
+            } else {
+                renderRecords(getRoomRecords(roomId));
+            }
+        }
+
+        // Mode Toggling
+        function updateModeUI() {
+            const label = document.getElementById('modeToggleLabel');
+            const adminSec = document.getElementById('adminControlSection');
+
+            if (currentMode === 'admin') {
+                label.textContent = "管理者モード";
+                adminSec.classList.remove('hidden');
+            } else {
+                label.textContent = "一般モード";
+                adminSec.classList.add('hidden');
+            }
+        }
+
+        // --- Initialization on Load ---
         window.addEventListener('DOMContentLoaded', () => {
-            // PNG icon conversion for iOS home screen icon
-            try {
-                const svgString = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='white'/><g transform='translate(100,100)'><g transform='translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#d93829'/></g><g transform='rotate(51.4) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#e88732'/></g><g transform='rotate(102.8) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#f1cf47'/></g><g transform='rotate(154.2) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#226a3c'/></g><g transform='rotate(205.7) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#3fb1e5'/></g><g transform='rotate(257.1) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#282b82'/></g><g transform='rotate(308.5) translate(0,-68)'><path d='M0,-12 C-6,-22 -20,-16 -20,-2 C-20,10 0,22 0,22 C0,22 20,10 20,-2 C20,-16 6,-22 0,-12 Z' fill='#5b2e7f'/></g><circle r='44' fill='#d93829' stroke='#111111' stroke-width='6'/><path d='M-25,18 Q0,38 25,18' fill='none' stroke='#111111' stroke-width='6' stroke-linecap='round'/><line x1='-28' y1='14' x2='-22' y2='22' stroke='#111111' stroke-width='6' stroke-linecap='round'/><line x1='28' y1='14' x2='22' y2='22' stroke='#111111' stroke-width='6' stroke-linecap='round'/><rect x='-44' y='-18' width='88' height='26' fill='#111111'/><line x1='-28' y1='-32' x2='-16' y2='-20' stroke='#e85292' stroke-width='5' stroke-linecap='round'/><line x1='-14' y1='-36' x2='-2' y2='-24' stroke='#f1cf47' stroke-width='5' stroke-linecap='round'/><line x1='0' y1='-38' x2='12' y2='-26' stroke='#282b82' stroke-width='5' stroke-linecap='round'/><text x='0' y='-4' font-family='Arial, sans-serif' font-weight='900' font-style='italic' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>N</text></g></svg>`;
-                const img = new Image();
-                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 180;
-                    canvas.height = 180;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, 180, 180);
-                    const pngDataUrl = canvas.toDataURL('image/png');
-                    const appleIconElement = document.getElementById('appleTouchIconLink');
-                    if (appleIconElement) {
-                        appleIconElement.href = pngDataUrl;
-                    }
-                };
-            } catch (e) {}
+            setupIcons();
 
-            const savedBuyer = localStorage.getItem('my_buyer_name');
-            if (savedBuyer) {
-                buyerInput.value = savedBuyer;
-                myBuyerNameBadge.textContent = savedBuyer;
+            // Check URL parameters for Room
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                activeRoomId = roomParam;
             }
 
-            checkAppLockState();
+            // Check Passcode Session
+            const isAuthed = sessionStorage.getItem('nijiiro_authed');
+            if (isAuthed === 'true') {
+                document.getElementById('passcodeLockOverlay').classList.add('hidden');
+            }
+
+            // Add Initial Row
             addNewItemRow();
+
+            // Load Initial Data
             loadRoomData(activeRoomId);
-            setupEventListeners();
-        });
 
-        function setupEventListeners() {
-            unlockAppBtn.addEventListener('click', tryUnlockApp);
-            entryPasscodeCode.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') tryUnlockApp();
-            });
-
-            modeToggleBtn.addEventListener('click', toggleMode);
-            document.getElementById('exitAdminBtn')?.addEventListener('click', () => {
-                isAdminMode = false;
-                updateModeUI();
-            });
-
-            document.getElementById('lockAppBtn').addEventListener('click', () => {
-                isAppUnlocked = false;
-                sessionStorage.removeItem('app_is_unlocked');
-                checkAppLockState();
-                showToast("画面をロックしました", "fa-lock text-blue-400");
-            });
-
-            document.getElementById('changePasscodeBtn')?.addEventListener('click', () => {
-                showModal({
-                    title: "パスコード変更",
-                    body: `
-                        <div class="space-y-3 text-left">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">閲覧用ロックパスコード</label>
-                                <input type="password" id="newEntryPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(entryPasscode)}" placeholder="0516">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">管理者用パスコード</label>
-                                <input type="password" id="newAdminPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(adminPasscode)}" placeholder="1234">
-                            </div>
-                        </div>
-                    `,
-                    actions: [
-                        { label: "キャンセル", type: "secondary", onClick: closeModal },
-                        { 
-                            label: "変更を保存", 
-                            type: "primary", 
-                            onClick: () => {
-                                const newEntryPass = document.getElementById('newEntryPassInput').value.trim();
-                                const newAdminPass = document.getElementById('newAdminPassInput').value.trim();
-                                if (!newEntryPass || !newAdminPass) {
-                                    showToast("両方のパスコードを入力してください", "fa-triangle-exclamation text-amber-400");
-                                    return;
-                                }
-                                entryPasscode = newEntryPass;
-                                adminPasscode = newAdminPass;
-                                localStorage.setItem('app_entry_passcode', newEntryPass);
-                                localStorage.setItem('app_admin_passcode', newAdminPass);
-                                closeModal();
-                                showToast("パスコードを変更しました", "fa-circle-check text-emerald-400");
-                            }
-                        }
-                    ]
-                });
-            });
-
-            document.getElementById('shareRoomBtn').addEventListener('click', () => {
-                // 現在のURLに必ず?room=xxx を付与して共有URLを生成
-                const shareUrl = new URL(window.location.origin + window.location.pathname);
-                shareUrl.searchParams.set('room', activeRoomId);
-                const shareUrlString = shareUrl.toString();
-
-                copyTextToClipboard(shareUrlString);
-                
-                showModal({
-                    title: "URL共有（スマホ連携）",
-                    body: `
-                        <div class="space-y-3 text-center">
-                            <p class="text-xs text-slate-500">このルーム専用の共有URLをコピーしました！<br>スマホで開くと自動的に同じデータが見られます。</p>
-                            <div class="flex justify-center p-3 bg-white rounded-2xl border border-slate-100 shadow-inner">
-                                <div id="qrcodeCanvas"></div>
-                            </div>
-                            <input type="text" readonly value="${escapeHtml(shareUrlString)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none select-all">
-                        </div>
-                    `,
-                    actions: [
-                        { label: "閉じる", type: "secondary", onClick: closeModal }
-                    ]
-                });
-
-                setTimeout(() => {
-                    const qrContainer = document.getElementById('qrcodeCanvas');
-                    if (qrContainer && typeof QRCode !== 'undefined') {
-                        qrContainer.innerHTML = '';
-                        new QRCode(qrContainer, {
-                            text: shareUrlString,
-                            width: 150,
-                            height: 150
-                        });
-                    }
-                }, 50);
-
-                showToast("共有URLをコピーしました！", "fa-share-nodes text-blue-400");
-            });
-
-            document.getElementById('changeRoomBtn').addEventListener('click', openRoomSelectModal);
-
-            buyerInput.addEventListener('input', (e) => {
-                const name = e.target.value.trim();
-                localStorage.setItem('my_buyer_name', name);
-                renderUserSummary();
-                renderRecordsList();
-            });
-
-            buyerSelect.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    buyerInput.value = e.target.value;
-                    localStorage.setItem('my_buyer_name', e.target.value);
-                    renderUserSummary();
-                    renderRecordsList();
+            // --- Event Listeners ---
+            document.getElementById('submitPasscodeBtn').addEventListener('click', () => {
+                const val = document.getElementById('passcodeInput').value;
+                if (val === USER_PASSCODE) {
+                    sessionStorage.setItem('nijiiro_authed', 'true');
+                    document.getElementById('passcodeLockOverlay').classList.add('hidden');
+                    showToast("認証されました！", "fa-circle-check text-emerald-400");
+                } else {
+                    document.getElementById('passcodeError').classList.remove('hidden');
                 }
             });
 
-            addRowBtn.addEventListener('click', addNewItemRow);
+            document.getElementById('modeToggleBtn').addEventListener('click', () => {
+                if (currentMode === 'user') {
+                    document.getElementById('adminAuthModal').classList.remove('hidden');
+                } else {
+                    currentMode = 'user';
+                    updateModeUI();
+                    showToast("一般モードに切り替えました", "fa-user text-indigo-400");
+                }
+            });
 
-            multiPurchaseForm.addEventListener('submit', (e) => {
+            document.getElementById('confirmAdminAuthBtn').addEventListener('click', () => {
+                const val = document.getElementById('adminPasscodeInput').value;
+                if (val === ADMIN_PASSCODE) {
+                    currentMode = 'admin';
+                    updateModeUI();
+                    document.getElementById('adminAuthModal').classList.add('hidden');
+                    document.getElementById('adminPasscodeInput').value = '';
+                    showToast("管理者モードに入りました", "fa-user-shield text-amber-400");
+                } else {
+                    document.getElementById('adminPassError').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('cancelAdminAuthBtn').addEventListener('click', () => {
+                document.getElementById('adminAuthModal').classList.add('hidden');
+            });
+
+            document.getElementById('addRowBtn').addEventListener('click', addNewItemRow);
+
+            document.getElementById('forceSyncBtn')?.addEventListener('click', () => {
+                loadRoomData(activeRoomId);
+                showToast("再同期を実行しました", "fa-arrows-rotate text-indigo-400");
+            });
+
+            // Handle Form Submission
+            document.getElementById('multiPurchaseForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const buyerName = buyerInput.value.trim();
-                if (!buyerName) {
-                    showToast("お名前を入力してください", "fa-triangle-exclamation text-amber-400");
-                    return;
-                }
+                const buyer = document.getElementById('buyerInput').value.trim();
+                if (!buyer) return;
 
                 const rows = document.querySelectorAll('.item-row');
-                const itemsToSave = [];
+                const newItems = [];
 
                 rows.forEach(row => {
                     const itemName = row.querySelector('.item-name').value.trim();
@@ -1087,184 +670,78 @@
                     const qty = parseInt(row.querySelector('.item-qty').value) || 1;
 
                     if (itemName) {
-                        itemsToSave.push({ 
+                        newItems.push({
                             id: 'rec_' + Date.now() + Math.random().toString(36).substring(2, 6),
-                            buyer: buyerName, 
-                            item: itemName, 
-                            adminItem: itemName, 
-                            price, 
-                            qty, 
+                            buyer,
+                            item: itemName,
+                            price,
+                            qty,
                             createdAt: new Date().toISOString()
                         });
                     }
                 });
 
-                if (itemsToSave.length === 0) {
-                    showToast("商品名を入力してください", "fa-triangle-exclamation text-amber-400");
-                    return;
+                if (newItems.length === 0) return;
+
+                let savedCloud = false;
+                for (const item of newItems) {
+                    if (window.saveRecordToCloud) {
+                        savedCloud = await window.saveRecordToCloud(activeRoomId, item);
+                    }
                 }
 
-                itemsToSave.forEach(rec => {
-                    if (window.saveRecordToCloud) {
-                        window.saveRecordToCloud(activeRoomId, rec);
-                    }
-                });
-
                 const existing = getRoomRecords(activeRoomId);
-                const updated = [...itemsToSave, ...existing];
-                saveRoomRecords(activeRoomId, updated);
+                saveRoomRecords(activeRoomId, [...newItems, ...existing]);
 
-                resetForm();
-                showToast(`${itemsToSave.length}件の注文を登録しました！`, "fa-circle-check text-emerald-400");
-            });
+                // Reset Form
+                document.getElementById('itemRowsContainer').innerHTML = '';
+                addNewItemRow();
 
-            document.getElementById('createNewRoomBtn').addEventListener('click', openCreateRoomModal);
-            document.getElementById('copySummaryBtn').addEventListener('click', copySummaryToClipboard);
-            document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
-            filterBuyer.addEventListener('change', renderRecordsList);
-
-            window.addEventListener('firebase-ready', () => {
-                const dot = document.getElementById('syncStatusDot');
-                const text = document.getElementById('syncStatusText');
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-                if (text) text.textContent = "リアルタイム同期中";
+                showToast(`${newItems.length}件の注文を登録しました！`, savedCloud ? "fa-circle-check text-emerald-400" : "fa-triangle-exclamation text-amber-400");
                 loadRoomData(activeRoomId);
             });
 
-            window.addEventListener('firebase-error', () => {
-                const dot = document.getElementById('syncStatusDot');
-                const text = document.getElementById('syncStatusText');
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
-                if (text) text.textContent = "オフライン (ローカル保存)";
-            });
-        }
-
-        function copySummaryToClipboard() {
-            if (records.length === 0) {
-                showToast("データがありません", "fa-triangle-exclamation text-amber-400");
-                return;
-            }
-
-            const currentRoomObj = availableRooms.find(r => r.id === activeRoomId);
-            const roomName = currentRoomObj ? currentRoomObj.name : 'メインルーム';
-
-            let text = `【注文集計結果 - ルーム: ${roomName}】\n`;
-            const personMap = {};
-            let grandTotal = 0;
-
-            records.forEach(r => {
-                const sub = r.price * r.qty;
-                grandTotal += sub;
-                if (!personMap[r.buyer]) personMap[r.buyer] = { total: 0, items: [] };
-                personMap[r.buyer].total += sub;
-                personMap[r.buyer].items.push(`${r.adminItem || r.item} (¥${r.price}×${r.qty})`);
+            // Share Modal Setup
+            document.getElementById('shareRoomBtn').addEventListener('click', () => {
+                const shareUrl = `${window.location.origin}${window.location.pathname}?room=${activeRoomId}`;
+                document.getElementById('shareUrlText').textContent = shareUrl;
+                document.getElementById('shareModal').classList.remove('hidden');
             });
 
-            for (const [person, data] of Object.entries(personMap)) {
-                text += `\n■ ${person} 様: ¥${data.total.toLocaleString()}\n`;
-                data.items.forEach(item => {
-                    text += `  ・${item}\n`;
-                });
-            }
-
-            text += `\n================\n総合計: ¥${grandTotal.toLocaleString()}`;
-
-            copyTextToClipboard(text);
-            showToast("LINE用集計テキストをコピーしました！", "fa-copy text-emerald-400");
-        }
-
-        function exportToCsv() {
-            if (records.length === 0) {
-                showToast("データがありません", "fa-triangle-exclamation text-amber-400");
-                return;
-            }
-
-            let csvContent = "\uFEFF購入者名,商品名,単価,数量,小計\n";
-            records.forEach(r => {
-                const subtotal = r.price * r.qty;
-                csvContent += `"${r.buyer}","${r.item}",${r.price},${r.qty},${subtotal}\n`;
+            document.getElementById('closeShareModalBtn').addEventListener('click', () => {
+                document.getElementById('shareModal').classList.add('hidden');
             });
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `summary_${activeRoomId}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            document.getElementById('copyShareUrlBtn').addEventListener('click', () => {
+                const shareUrl = document.getElementById('shareUrlText').textContent;
+                const tempInput = document.createElement('input');
+                tempInput.value = shareUrl;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast("共有リンクをコピーしました！", "fa-copy text-indigo-400");
+            });
 
-            showToast("CSVを出力しました", "fa-file-csv text-blue-400");
-        }
+            // Room Switcher Setup
+            document.getElementById('roomSelectBtn').addEventListener('click', () => {
+                document.getElementById('roomSelectModal').classList.remove('hidden');
+            });
+            document.getElementById('closeRoomModalBtn').addEventListener('click', () => {
+                document.getElementById('roomSelectModal').classList.add('hidden');
+            });
 
-        function copyTextToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try { document.execCommand('copy'); } catch (err) {}
-            document.body.removeChild(textArea);
-        }
-
-        function showModal({ title, body, actions }) {
-            const modal = document.getElementById('customModal');
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalBody').innerHTML = body;
-
-            const actionsContainer = document.getElementById('modalActions');
-            actionsContainer.innerHTML = '';
-
-            actions.forEach(action => {
-                const btn = document.createElement('button');
-                btn.textContent = action.label;
-                let btnClass = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ";
-                if (action.type === 'primary') {
-                    btnClass += "bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:bg-blue-700";
-                } else if (action.type === 'danger') {
-                    btnClass += "bg-rose-600 text-white shadow-md shadow-rose-500/20 hover:bg-rose-700";
-                } else {
-                    btnClass += "bg-slate-100 text-slate-700 hover:bg-slate-200";
+            document.getElementById('createNewRoomBtn').addEventListener('click', () => {
+                const roomName = document.getElementById('newRoomNameInput').value.trim();
+                if (roomName) {
+                    activeRoomId = roomName;
+                    loadRoomData(roomName);
+                    document.getElementById('newRoomNameInput').value = '';
+                    document.getElementById('roomSelectModal').classList.add('hidden');
+                    showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
                 }
-                btn.className = btnClass;
-                btn.onclick = action.onClick;
-                actionsContainer.appendChild(btn);
             });
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('customModal').classList.add('hidden');
-        }
-
-        function showToast(msg, iconClass) {
-            const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toastMsg');
-            const toastIcon = document.getElementById('toastIcon');
-
-            toastMsg.textContent = msg;
-            toastIcon.className = `fa-solid ${iconClass || 'fa-circle-check text-emerald-400'}`;
-
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            toast.classList.add('opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 2500);
-        }
-
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, function (m) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[m];
-            });
-        }
+        });
     </script>
 </body>
 </html>
