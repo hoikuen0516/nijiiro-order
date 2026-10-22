@@ -36,12 +36,27 @@
         window.firebaseAuth = null;
         window.unsubscribeRoom = null;
 
-        // URLパラメータからのルームID優先読み込み
+        // URLパラメータからのルームID優先読み込み & リスト自動追加
         const urlParams = new URLSearchParams(window.location.search);
         const roomFromUrl = urlParams.get('room');
+        
+        let availableRooms = JSON.parse(localStorage.getItem('rainbow_rooms_list') || '[]');
+        if (availableRooms.length === 0) {
+            availableRooms = [{ id: 'main_room', name: 'メインルーム', createdAt: new Date().toISOString() }];
+        }
+
         if (roomFromUrl) {
             localStorage.setItem('active_room_id', roomFromUrl);
+            // 共有されてアクセスしたルームがローカルリストに存在しない場合は追加
+            if (!availableRooms.some(r => r.id === roomFromUrl)) {
+                availableRooms.push({
+                    id: roomFromUrl,
+                    name: `共有ルーム (${roomFromUrl.substring(0, 8)})`,
+                    createdAt: new Date().toISOString()
+                });
+            }
         }
+        localStorage.setItem('rainbow_rooms_list', JSON.stringify(availableRooms));
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-shared-app';
         window.appId = appId;
@@ -90,7 +105,7 @@
                 return;
             }
 
-            // Public path
+            // Public path (Rule 1 STRICT compliant)
             const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`);
 
             window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
@@ -997,8 +1012,8 @@
             });
 
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
-                // ルームIDを含めたURLを共有用に生成
-                const shareUrl = new URL(window.location.href);
+                // 現在のURLに必ず?room=xxx を付与して共有URLを生成
+                const shareUrl = new URL(window.location.origin + window.location.pathname);
                 shareUrl.searchParams.set('room', activeRoomId);
                 const shareUrlString = shareUrl.toString();
 
@@ -1012,7 +1027,7 @@
                             <div class="flex justify-center p-3 bg-white rounded-2xl border border-slate-100 shadow-inner">
                                 <div id="qrcodeCanvas"></div>
                             </div>
-                            <input type="text" readonly value="${escapeHtml(shareUrlString)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none">
+                            <input type="text" readonly value="${escapeHtml(shareUrlString)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] text-slate-600 font-mono text-center focus:outline-none select-all">
                         </div>
                     `,
                     actions: [
@@ -1023,6 +1038,7 @@
                 setTimeout(() => {
                     const qrContainer = document.getElementById('qrcodeCanvas');
                     if (qrContainer && typeof QRCode !== 'undefined') {
+                        qrContainer.innerHTML = '';
                         new QRCode(qrContainer, {
                             text: shareUrlString,
                             width: 150,
