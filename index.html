@@ -48,7 +48,7 @@
             </div>
             <div>
                 <h2 class="font-bold text-slate-900 text-lg">パスコード入力</h2>
-                <p class="text-xs text-slate-500 mt-1">このページを閲覧・利用するにはパスコードが必要です（初期設定: 1234）</p>
+                <p class="text-xs text-slate-500 mt-1">このページを閲覧・利用するにはパスコードが必要です（初期設定: 0516）</p>
             </div>
             <div class="space-y-3">
                 <input type="password" id="entryPasscodeCode" placeholder="••••" maxlength="12"
@@ -314,6 +314,7 @@
         }
 
         let isAdminMode = false;
+        let entryPasscode = localStorage.getItem('app_entry_passcode') || "0516";
         let adminPasscode = localStorage.getItem('app_admin_passcode') || "1234";
         let isAppUnlocked = sessionStorage.getItem('app_is_unlocked') === 'true';
         let records = [];
@@ -363,7 +364,7 @@
 
         function tryUnlockApp() {
             const inputVal = entryPasscodeCode.value.trim();
-            if (inputVal === adminPasscode) {
+            if (inputVal === entryPasscode) {
                 isAppUnlocked = true;
                 sessionStorage.setItem('app_is_unlocked', 'true');
                 entryErrorMsg.classList.add('hidden');
@@ -674,8 +675,12 @@
                     body: `
                         <div class="space-y-3 text-left">
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">新しいパスコード</label>
-                                <input type="password" id="newPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="新しい数字やパスワード">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">閲覧用ロックパスコード</label>
+                                <input type="password" id="newEntryPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(entryPasscode)}" placeholder="0516">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">管理者用パスコード</label>
+                                <input type="password" id="newAdminPassInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(adminPasscode)}" placeholder="1234">
                             </div>
                         </div>
                     `,
@@ -685,13 +690,16 @@
                             label: "変更を保存", 
                             type: "primary", 
                             onClick: () => {
-                                const newPass = document.getElementById('newPassInput').value.trim();
-                                if (!newPass) {
-                                    showToast("パスコードを入力してください", "fa-triangle-exclamation text-amber-400");
+                                const newEntryPass = document.getElementById('newEntryPassInput').value.trim();
+                                const newAdminPass = document.getElementById('newAdminPassInput').value.trim();
+                                if (!newEntryPass || !newAdminPass) {
+                                    showToast("両方のパスコードを入力してください", "fa-triangle-exclamation text-amber-400");
                                     return;
                                 }
-                                adminPasscode = newPass;
-                                localStorage.setItem('app_admin_passcode', newPass);
+                                entryPasscode = newEntryPass;
+                                adminPasscode = newAdminPass;
+                                localStorage.setItem('app_entry_passcode', newEntryPass);
+                                localStorage.setItem('app_admin_passcode', newAdminPass);
                                 closeModal();
                                 showToast("パスコードを変更しました", "fa-circle-check text-emerald-400");
                             }
@@ -812,7 +820,7 @@
                     title: "管理者認証",
                     body: `
                         <div class="space-y-2">
-                            <p class="text-xs text-slate-500">パスコードを入力（初期値: 1234）</p>
+                            <p class="text-xs text-slate-500">管理者パスコードを入力（初期値: 1234）</p>
                             <input type="password" id="passcodeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••">
                         </div>
                     `,
