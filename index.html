@@ -257,10 +257,9 @@
     <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Firebase Configuration setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'nijiiro-group-order';
         let firebaseConfig = null;
         if (typeof __firebase_config !== 'undefined') {
@@ -284,7 +283,7 @@
         window.firebaseAuth = auth;
         window.appId = appId;
 
-        // BroadcastChannel for Tab-to-Tab Local Sync when Firebase is offline/not configured
+        // BroadcastChannel for Cross-Tab Local Sync
         const localBroadcast = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('nijiiro_sync_channel') : null;
 
         if (localBroadcast) {
@@ -297,94 +296,59 @@
             };
         }
 
-        // Firebase Auth Promise
-        window.authReadyPromise = new Promise((resolve) => {
-            if (!auth) {
-                resolve(null);
-                return;
-            }
-
-            // Firebase接続タイムアウト（2秒でローカルモードへフォールバック）
-            const timeout = setTimeout(() => {
-                resolve(null);
-            }, 2000);
-
-            onAuthStateChanged(auth, (user) => {
-                clearTimeout(timeout);
-                if (user) {
-                    resolve(user);
-                } else {
-                    const initAuth = async () => {
-                        try {
-                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                await signInWithCustomToken(auth, __initial_auth_token);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                        } catch (e) {
-                            console.warn("Auth init fallback:", e);
-                            resolve(null);
-                        }
-                    };
-                    initAuth();
-                }
-            });
-        });
-
-        // Realtime Subscription with Firestore & Local Sync Fallback
-        window.subscribeToRoomRealtime = async function(roomId, onDataReceived) {
+        // リアルタイム同期（Firestore 優先、不可時は Broadcast 連携）
+        window.subscribeToRoomRealtime = function(roomId, onDataReceived) {
             window.onLocalSyncCallback = onDataReceived;
 
             if (window.unsubscribeRoom) {
-                window.unsubscribeRoom();
+                try { window.unsubscribeRoom(); } catch(e){}
                 window.unsubscribeRoom = null;
             }
 
             const dot = document.getElementById('syncStatusDot');
             const text = document.getElementById('syncStatusText');
 
-            // クラウド接続試行またはローカル切り替え
-            const user = await window.authReadyPromise;
-
-            if (!user || !window.firebaseDb) {
+            if (!window.firebaseDb) {
                 if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-                if (text) text.textContent = "リアルタイム同期中 (ローカル/タブ連携)";
+                if (text) text.textContent = "リアルタイム同期中";
                 onDataReceived(getRoomRecords(roomId));
                 return;
             }
 
-            const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`);
-
-            if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-            if (text) text.textContent = "クラウドリアルタイム同期中";
-
-            window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
-                const fetchedRecords = [];
-                snapshot.forEach((docSnap) => {
-                    fetchedRecords.push(docSnap.data());
+            try {
+                const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`);
+                window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
+                    const fetchedRecords = [];
+                    snapshot.forEach((docSnap) => {
+                        fetchedRecords.push(docSnap.data());
+                    });
+                    fetchedRecords.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                    saveRoomRecords(roomId, fetchedRecords);
+                    if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                    if (text) text.textContent = "クラウド同期中";
+                    onDataReceived(fetchedRecords);
+                }, (error) => {
+                    console.warn("Firestore listener error:", error);
+                    if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                    if (text) text.textContent = "リアルタイム同期中";
+                    onDataReceived(getRoomRecords(roomId));
                 });
-                fetchedRecords.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-                saveRoomRecords(roomId, fetchedRecords);
-                onDataReceived(fetchedRecords);
-            }, (error) => {
-                console.warn("Firestore error fallback:", error);
+            } catch (e) {
                 if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-                if (text) text.textContent = "同期中 (ローカル/タブ連携)";
+                if (text) text.textContent = "リアルタイム同期中";
                 onDataReceived(getRoomRecords(roomId));
-            });
+            }
         };
 
+        // レコード保存（クラウド＋ローカル）
         window.saveRecordToCloud = async function(roomId, record) {
-            let savedCloud = false;
-            try {
-                await window.authReadyPromise;
-                if (window.firebaseDb) {
+            if (window.firebaseDb) {
+                try {
                     const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, record.id);
                     await setDoc(docRef, record);
-                    savedCloud = true;
+                } catch (e) {
+                    console.warn("Cloud save failed, saved locally:", e);
                 }
-            } catch (e) {
-                console.error("Cloud save failed:", e);
             }
 
             // Local storage update & broadcast
@@ -394,90 +358,70 @@
             if (localBroadcast) {
                 localBroadcast.postMessage({ type: 'UPDATE', roomId });
             }
-            return savedCloud;
         };
 
+        // レコード削除
         window.deleteRecordFromCloud = async function(roomId, recordId) {
-            let deletedCloud = false;
-            try {
-                await window.authReadyPromise;
-                if (window.firebaseDb) {
+            if (window.firebaseDb) {
+                try {
                     const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, recordId);
                     await deleteDoc(docRef);
-                    deletedCloud = true;
+                } catch (e) {
+                    console.warn("Cloud delete failed:", e);
                 }
-            } catch (e) {
-                console.error("Cloud delete failed:", e);
             }
 
-            // Local storage update & broadcast
             const records = getRoomRecords(roomId).filter(r => r.id !== recordId);
             saveRoomRecords(roomId, records);
             if (localBroadcast) {
                 localBroadcast.postMessage({ type: 'DELETE', roomId });
             }
-            return deletedCloud;
         };
     </script>
 
     <script>
-        // --- 7色のハートと画像通りの可愛いスマイルNロゴ (完璧なSVG再現) ---
+        // 7色のハートと画像通りの可愛いスマイルNロゴ
         const rainbowLogoSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full">
-            <!-- 7つのカラフルなハート (上から時計回り: 赤, 橙, 黄, 緑, 水色, 紺, 紫) -->
-            <!-- 1. トップ (赤) -->
             <g transform="translate(120, 26) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e53e3e"/>
             </g>
-            <!-- 2. 右上 (橙) -->
             <g transform="translate(182, 52) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ed8936"/>
             </g>
-            <!-- 3. 右下 (黄) -->
             <g transform="translate(192, 122) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ecc94b"/>
             </g>
-            <!-- 4. 真下右 (緑) -->
             <g transform="translate(162, 186) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#38a169"/>
             </g>
-            <!-- 5. 真下左 (水色) -->
             <g transform="translate(78, 186) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#4299e1"/>
             </g>
-            <!-- 6. 左下 (紺) -->
             <g transform="translate(48, 122) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#2b6cb0"/>
             </g>
-            <!-- 7. 左上 (紫) -->
             <g transform="translate(58, 52) scale(0.65)">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#805ad5"/>
             </g>
 
-            <!-- 中央メインアイコン（黒フチ付きの丸型スマイル） -->
             <g transform="translate(120,120)">
-                <!-- 外枠黒ライン -->
                 <circle cx="0" cy="0" r="54" fill="#e53e3e" stroke="#1a202c" stroke-width="8"/>
 
-                <!-- Clip Path for Top Stripes -->
                 <clipPath id="circleClip">
                     <circle cx="0" cy="0" r="50"/>
                 </clipPath>
 
                 <g clip-path="url(#circleClip)">
-                    <!-- 上部斜線ストライプ (ピンク, 黄, 紺) -->
                     <path d="M-60 -50 L60 -50 L60 -15 L-60 -15 Z" fill="#e53e3e"/>
                     <line x1="-30" y1="-55" x2="-5" y2="-15" stroke="#f687b3" stroke-width="12"/>
                     <line x1="-10" y1="-55" x2="15" y2="-15" stroke="#f6e05e" stroke-width="12"/>
                     <line x1="10" y1="-55" x2="35" y2="-15" stroke="#1a365d" stroke-width="12"/>
 
-                    <!-- 中央黒帯 -->
                     <rect x="-60" y="-18" width="120" height="36" fill="#1a202c"/>
 
-                    <!-- 白文字 N -->
                     <text x="0" y="10" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
 
-                    <!-- 下部スマイル口元 -->
                     <path d="M-24 28 Q0 48 24 28" fill="none" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
                     <line x1="-27" y1="26" x2="-21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
                     <line x1="27" y1="26" x2="21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
@@ -506,7 +450,6 @@
             };
         }
 
-        // Passcodes
         const USER_PASSCODE = "0516";
         const ADMIN_PASSCODE = "1234";
 
@@ -612,6 +555,7 @@
                         }
                         const current = getRoomRecords(activeRoomId).filter(r => r.id !== rec.id);
                         saveRoomRecords(activeRoomId, current);
+                        renderRecords(current);
                         showToast("注文を削除しました", "fa-circle-check text-emerald-400");
                     }
                 });
@@ -630,8 +574,9 @@
 
         function loadRoomData(roomId) {
             activeRoomId = roomId;
+            window.activeRoomId = roomId;
             const badge = document.getElementById('currentRoomBadge');
-            badge.textContent = roomId === 'default' ? 'メイン' : roomId;
+            if (badge) badge.textContent = roomId === 'default' ? 'メイン' : roomId;
 
             if (window.subscribeToRoomRealtime) {
                 window.subscribeToRoomRealtime(roomId, (fetchedRecords) => {
@@ -658,20 +603,17 @@
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
 
-            // LocalStorage Cross-Tab Listeners
             window.addEventListener('storage', (e) => {
                 if (e.key === `nijiiro_room_${window.activeRoomId}`) {
                     renderRecords(getRoomRecords(window.activeRoomId));
                 }
             });
 
-            // URLパラメータからルームIDを取得
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
                 activeRoomId = roomParam;
             }
-            window.activeRoomId = activeRoomId;
 
             const isAuthed = sessionStorage.getItem('nijiiro_authed');
             if (isAuthed === 'true') {
@@ -681,7 +623,6 @@
             addNewItemRow();
             loadRoomData(activeRoomId);
 
-            // Passcode Authentication
             document.getElementById('submitPasscodeBtn').addEventListener('click', () => {
                 const val = document.getElementById('passcodeInput').value;
                 if (val === USER_PASSCODE) {
@@ -693,7 +634,6 @@
                 }
             });
 
-            // Admin Mode Authentication
             document.getElementById('modeToggleBtn').addEventListener('click', () => {
                 if (currentMode === 'user') {
                     document.getElementById('adminAuthModal').classList.remove('hidden');
@@ -728,7 +668,7 @@
                 showToast("更新を実行しました", "fa-arrows-rotate text-indigo-400");
             });
 
-            // Multi Purchase Submit Handler
+            // 注文登録フォーム送信処理
             document.getElementById('multiPurchaseForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const buyer = document.getElementById('buyerInput').value.trim();
@@ -762,14 +702,16 @@
                     }
                 }
 
-                // Reset Form
+                // 画面リストの再描画
+                renderRecords(getRoomRecords(activeRoomId));
+
+                // フォーム初期化
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
 
-                showToast(`${newItems.length}件の注文を送信しました！`, "fa-circle-check text-emerald-400");
+                showToast(`${newItems.length}件の注文を追加しました！`, "fa-circle-check text-emerald-400");
             });
 
-            // Share Modal & URL Copy
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
                 const shareUrl = `${window.location.origin}${window.location.pathname}?room=${activeRoomId}`;
                 document.getElementById('shareUrlText').textContent = shareUrl;
@@ -791,7 +733,6 @@
                 showToast("共有リンクをコピーしました！", "fa-copy text-indigo-400");
             });
 
-            // Room Selector
             document.getElementById('roomSelectBtn').addEventListener('click', () => {
                 document.getElementById('roomSelectModal').classList.remove('hidden');
             });
@@ -805,7 +746,6 @@
                     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
                     window.history.pushState({}, '', newUrl);
                     activeRoomId = roomName;
-                    window.activeRoomId = roomName;
                     loadRoomData(roomName);
                     document.getElementById('newRoomNameInput').value = '';
                     document.getElementById('roomSelectModal').classList.add('hidden');
