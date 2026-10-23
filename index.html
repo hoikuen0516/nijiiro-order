@@ -16,6 +16,40 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration & Global Initialization
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'nijiiro-order-app';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Authenticate user anonymously or with token
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.warn("Auth fallback mode active:", e);
+            }
+        }
+        window.firebaseAuthPromise = initAuth();
+        window.db = db;
+        window.appId = appId;
+    </script>
+
     <!-- Tailwind Custom Color Configurations -->
     <script>
         tailwind.config = {
@@ -103,8 +137,9 @@
                 <button id="shareRoomBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200" title="部屋を共有">
                     <i class="fa-solid fa-share-nodes"></i>
                 </button>
-                <button id="roomSelectBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200" title="ルーム切替">
-                    <i class="fa-solid fa-door-open"></i>
+                <button id="roomSelectBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200 flex items-center gap-1" title="ルーム切替">
+                    <i class="fa-solid fa-door-open text-indigo-500"></i>
+                    <span class="text-xs font-bold hidden sm:inline">ルーム</span>
                 </button>
             </div>
         </div>
@@ -222,14 +257,23 @@
     <div id="roomSelectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-white/20">
             <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="text-base font-black text-slate-800">ルームの切り替え・作成</h3>
+                <h3 class="text-base font-black text-slate-800">イベント・注文グループの切替</h3>
                 <button id="closeRoomModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
+            <p class="text-xs text-slate-500">「BBQ用」「誕生日用」など目的別のルームを作成・移動できます。</p>
             <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-600">新規ルーム名</label>
+                <label class="block text-xs font-bold text-slate-600">ルーム名（英数字・日本語可）</label>
                 <div class="flex gap-2">
-                    <input type="text" id="newRoomNameInput" placeholder="例: group1" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
+                    <input type="text" id="newRoomNameInput" placeholder="例: BBQ用, 誕生日会" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
                     <button id="createNewRoomBtn" class="px-3 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow">移動</button>
+                </div>
+            </div>
+            <div class="pt-2 border-t text-xs">
+                <span class="font-bold text-slate-600 block mb-1">クイック移動:</span>
+                <div class="flex flex-wrap gap-1.5">
+                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">メイン</button>
+                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">BBQ用</button>
+                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">誕生日用</button>
                 </div>
             </div>
         </div>
@@ -258,7 +302,7 @@
 
     <!-- アプリ主要ロジック -->
     <script>
-        // 添付画像の忠実再現ロゴ（7つのハート＆笑顔N）
+        // ロゴ画像SVG定義
         const rainbowLogoSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full drop-shadow-md">
             <g>
@@ -295,19 +339,6 @@
             document.getElementById('lockAppLogo').innerHTML = rainbowLogoSvg;
             document.getElementById('headerAppLogo').innerHTML = rainbowLogoSvg;
             document.getElementById('faviconIcon').href = svgUrl;
-
-            const img = new Image();
-            img.src = svgUrl;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 180;
-                canvas.height = 180;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, 180, 180);
-                ctx.drawImage(img, 0, 0, 180, 180);
-                document.getElementById('appleTouchIcon').href = canvas.toDataURL('image/png');
-            };
         }
 
         const USER_PASSCODE = "0516";
@@ -315,22 +346,79 @@
 
         let currentMode = "user";
         let activeRoomId = "main";
-        let syncChannel = null;
+        let currentRoomRecords = [];
+        let unsubscribeRoomListener = null;
 
-        function getRoomRecords(roomId) {
-            try {
-                const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
-                return stored ? JSON.parse(stored) : [];
-            } catch (e) {
-                return [];
+        // Firebase Firestore & Local Data Synchronization
+        async function subscribeRoomData(roomId) {
+            const dot = document.getElementById('syncStatusDot');
+            const text = document.getElementById('syncStatusText');
+
+            if (unsubscribeRoomListener) {
+                unsubscribeRoomListener();
+                unsubscribeRoomListener = null;
             }
+
+            // Local fallback getter
+            const getLocalRecords = () => {
+                try {
+                    const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
+                    return stored ? JSON.parse(stored) : [];
+                } catch(e) { return []; }
+            };
+
+            // Cloud Firestore listener
+            if (window.db && window.firebaseAuthPromise) {
+                await window.firebaseAuthPromise;
+                try {
+                    const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                    const roomRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
+
+                    unsubscribeRoomListener = onSnapshot(roomRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            currentRoomRecords = data.records || [];
+                        } else {
+                            currentRoomRecords = getLocalRecords();
+                        }
+                        renderRecords(currentRoomRecords);
+                        dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                        text.textContent = "クラウドリアルタイム同期中";
+                    }, (err) => {
+                        console.warn("Firestore snapshot error:", err);
+                        currentRoomRecords = getLocalRecords();
+                        renderRecords(currentRoomRecords);
+                        dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+                        text.textContent = "ローカルモード（同期制限）";
+                    });
+                    return;
+                } catch(e) {
+                    console.warn("Cloud listener init failed:", e);
+                }
+            }
+
+            // Standard fallback
+            currentRoomRecords = getLocalRecords();
+            renderRecords(currentRoomRecords);
+            dot.className = "inline-block w-2 h-2 rounded-full bg-indigo-500";
+            text.textContent = "ローカル同期中";
         }
 
-        function saveRoomRecords(roomId, records) {
+        async function saveRoomRecords(roomId, records) {
+            currentRoomRecords = records;
             try {
                 localStorage.setItem(`nijiiro_room_${roomId}`, JSON.stringify(records));
-            } catch (e) {
-                console.error("Storage save failed", e);
+            } catch(e) {}
+
+            if (window.db && window.firebaseAuthPromise) {
+                await window.firebaseAuthPromise;
+                try {
+                    const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                    const roomRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
+                    await setDoc(roomRef, { records: records, updatedAt: new Date().toISOString() }, { merge: true });
+                } catch(e) {
+                    console.warn("Cloud save failed:", e);
+                }
             }
         }
 
@@ -346,53 +434,6 @@
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }, 3000);
-        }
-
-        // --- 安全で標準仕様に準拠したブラウザ内リアルタイム同期（BroadcastChannel & Storage Sync） ---
-        function initRealtimeSync(roomId) {
-            const dot = document.getElementById('syncStatusDot');
-            const text = document.getElementById('syncStatusText');
-
-            if (syncChannel) {
-                try { syncChannel.close(); } catch(e){}
-            }
-
-            const channelName = `nijiiro_sync_channel_${roomId}`;
-            
-            if ('BroadcastChannel' in window) {
-                syncChannel = new BroadcastChannel(channelName);
-                syncChannel.onmessage = (event) => {
-                    if (event.data && event.data.type === 'SYNC_DATA') {
-                        renderRecords(event.data.records);
-                        showToast("最新データを受信・更新しました", "fa-arrows-rotate text-emerald-400");
-                    }
-                };
-            }
-
-            // クロスタブ／サブウィンドウストレージイベント同期
-            window.addEventListener('storage', (e) => {
-                if (e.key === `nijiiro_room_${activeRoomId}`) {
-                    const freshRecords = getRoomRecords(activeRoomId);
-                    renderRecords(freshRecords);
-                    showToast("最新データを受信・更新しました", "fa-arrows-rotate text-emerald-400");
-                }
-            });
-
-            dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-            text.textContent = "リアルタイム同期中";
-        }
-
-        function broadcastDataUpdate(records) {
-            if (syncChannel) {
-                try {
-                    syncChannel.postMessage({
-                        type: 'SYNC_DATA',
-                        records: records
-                    });
-                } catch(e) {
-                    console.warn("Broadcast post message failed", e);
-                }
-            }
         }
 
         function addNewItemRow() {
@@ -443,10 +484,9 @@
             tbody.innerHTML = '';
             let grandTotal = 0;
 
-            // モードに応じたフィルタリング処理
             let displayRecords = records || [];
             if (currentMode === 'user') {
-                // 一般モード: 自分のお名前で入力した履歴のみ表示
+                // 一般モード: 自分が入力したお名前の履歴のみ表示
                 titleIcon.className = "fa-solid fa-clock-rotate-left text-indigo-500";
                 titleText.textContent = "自分の注文履歴";
                 thBuyer.classList.add('hidden');
@@ -459,16 +499,18 @@
             } else {
                 // 管理者モード: 参加者全員の注文一覧を表示
                 titleIcon.className = "fa-solid fa-users text-amber-500";
-                titleText.textContent = "全員の注文状況一覧（管理者用）";
+                titleText.textContent = `「${activeRoomId}」の全員の注文一覧（管理者用）`;
                 thBuyer.classList.remove('hidden');
             }
 
             if (!displayRecords || displayRecords.length === 0) {
                 emptyState.classList.remove('hidden');
                 if (currentMode === 'user') {
-                    emptyText.textContent = currentBuyer ? "あなたの注文履歴はありません" : "お名前を入力すると自分の注文履歴が表示されます";
+                    emptyText.textContent = currentBuyer 
+                        ? `「${currentBuyer}」さんの注文履歴はありません` 
+                        : "お名前を入力すると自分の注文履歴が表示されます";
                 } else {
-                    emptyText.textContent = "まだ誰の注文も登録されていません";
+                    emptyText.textContent = `「${activeRoomId}」にはまだ注文が登録されていません`;
                 }
                 totalText.textContent = '¥0';
                 return;
@@ -502,12 +544,11 @@
                     </td>
                 `;
 
-                tr.querySelector('.delete-record-btn').addEventListener('click', () => {
+                tr.querySelector('.delete-record-btn').addEventListener('click', async () => {
                     if (confirm('この注文を削除しますか？')) {
-                        const current = getRoomRecords(activeRoomId).filter(r => r.id !== rec.id);
-                        saveRoomRecords(activeRoomId, current);
-                        renderRecords(current);
-                        broadcastDataUpdate(current);
+                        const updated = currentRoomRecords.filter(r => r.id !== rec.id);
+                        await saveRoomRecords(activeRoomId, updated);
+                        renderRecords(updated);
                         showToast("注文を削除しました", "fa-circle-check text-emerald-400");
                     }
                 });
@@ -527,11 +568,9 @@
         function loadRoomData(roomId) {
             activeRoomId = roomId;
             const badge = document.getElementById('currentRoomBadge');
-            if (badge) badge.textContent = roomId === 'main' ? 'メイン' : roomId;
+            if (badge) badge.textContent = roomId;
 
-            const records = getRoomRecords(roomId);
-            renderRecords(records);
-            initRealtimeSync(roomId);
+            subscribeRoomData(roomId);
         }
 
         function updateModeUI() {
@@ -545,23 +584,22 @@
                 label.textContent = "一般モード";
                 adminSec.classList.add('hidden');
             }
-            // モード切替に伴い一覧表示を最新化
-            renderRecords(getRoomRecords(activeRoomId));
+            renderRecords(currentRoomRecords);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
 
-            // --- 閲覧用パスコード判定 (初期設定: 0516) ---
+            // 閲覧用パスコード判定 (0516)
             const handlePasscodeSubmit = () => {
                 const inputVal = document.getElementById('passcodeInput').value;
                 if (inputVal === USER_PASSCODE) {
                     document.getElementById('passcodeLockOverlay').classList.add('hidden');
                     document.getElementById('passcodeError').classList.add('hidden');
-                    // URLからのルーム指定確認
+
                     const urlParams = new URLSearchParams(window.location.search);
-                    const roomParam = urlParams.get('room');
-                    loadRoomData(roomParam || activeRoomId);
+                    const roomParam = urlParams.get('room') || activeRoomId;
+                    loadRoomData(roomParam);
                     addNewItemRow();
                 } else {
                     document.getElementById('passcodeError').classList.remove('hidden');
@@ -573,15 +611,13 @@
                 if (e.key === 'Enter') handlePasscodeSubmit();
             });
 
-            // お名前入力欄変更時に自分の履歴をリアルタイム絞り込み
             document.getElementById('buyerInput').addEventListener('input', () => {
                 if (currentMode === 'user') {
-                    const records = getRoomRecords(activeRoomId);
-                    renderRecords(records);
+                    renderRecords(currentRoomRecords);
                 }
             });
 
-            // --- 管理者モード切り替えハンドラー ---
+            // 管理者モード切替 (1234)
             document.getElementById('modeToggleBtn').addEventListener('click', () => {
                 if (currentMode === 'user') {
                     document.getElementById('adminPassError').classList.add('hidden');
@@ -619,12 +655,12 @@
             document.getElementById('addRowBtn').addEventListener('click', addNewItemRow);
 
             document.getElementById('forceSyncBtn').addEventListener('click', () => {
-                initRealtimeSync(activeRoomId);
+                subscribeRoomData(activeRoomId);
                 showToast("再接続を試みました", "fa-arrows-rotate text-indigo-400");
             });
 
-            // --- 注文登録送信ハンドラー ---
-            document.getElementById('multiPurchaseForm').addEventListener('submit', (e) => {
+            // 注文登録・送信
+            document.getElementById('multiPurchaseForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const buyer = document.getElementById('buyerInput').value.trim();
                 if (!buyer) return;
@@ -651,21 +687,17 @@
 
                 if (newItems.length === 0) return;
 
-                const currentRecords = getRoomRecords(activeRoomId);
-                const updatedRecords = [...newItems, ...currentRecords];
-                saveRoomRecords(activeRoomId, updatedRecords);
+                const updatedRecords = [...newItems, ...currentRoomRecords];
+                await saveRoomRecords(activeRoomId, updatedRecords);
                 renderRecords(updatedRecords);
-
-                // 同一ルームの他ウィンドウへ即座に送信
-                broadcastDataUpdate(updatedRecords);
 
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
 
-                showToast(`${newItems.length}件の注文を追加・配信しました！`, "fa-circle-check text-emerald-400");
+                showToast(`${newItems.length}件の注文をクラウドへ登録・共有しました！`, "fa-circle-check text-emerald-400");
             });
 
-            // --- 共有モーダル ---
+            // 共有モーダル
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
                 const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(activeRoomId)}`;
                 document.getElementById('shareUrlText').textContent = shareUrl;
@@ -687,7 +719,7 @@
                 showToast("共有リンクをコピーしました！", "fa-copy text-indigo-400");
             });
 
-            // --- ルーム切り替えモーダル ---
+            // ルーム切り替えモーダル
             document.getElementById('roomSelectBtn').addEventListener('click', () => {
                 document.getElementById('roomSelectModal').classList.remove('hidden');
             });
@@ -695,28 +727,36 @@
                 document.getElementById('roomSelectModal').classList.add('hidden');
             });
 
-            document.getElementById('createNewRoomBtn').addEventListener('click', () => {
-                const roomName = document.getElementById('newRoomNameInput').value.trim();
+            const switchRoom = (roomName) => {
                 if (roomName) {
                     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
                     window.history.pushState({}, '', newUrl);
-                    activeRoomId = roomName;
                     loadRoomData(roomName);
                     document.getElementById('newRoomNameInput').value = '';
                     document.getElementById('roomSelectModal').classList.add('hidden');
                     showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
                 }
+            };
+
+            document.getElementById('createNewRoomBtn').addEventListener('click', () => {
+                const roomName = document.getElementById('newRoomNameInput').value.trim();
+                switchRoom(roomName);
             });
 
-            // --- CSV出力（管理者用） ---
+            document.querySelectorAll('.quick-room-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchRoom(btn.textContent.trim());
+                });
+            });
+
+            // CSV出力（管理者用）
             document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-                const records = getRoomRecords(activeRoomId);
-                if (records.length === 0) {
+                if (currentRoomRecords.length === 0) {
                     showToast("出力するデータがありません", "fa-triangle-exclamation text-amber-400");
                     return;
                 }
                 let csv = "\uFEFF購入者,商品名,単価,数量,小計\n";
-                records.forEach(r => {
+                currentRoomRecords.forEach(r => {
                     csv += `"${r.buyer}","${r.item}",${r.price},${r.qty},${r.price * r.qty}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -726,12 +766,11 @@
                 link.click();
             });
 
-            // --- 全削除（管理者用） ---
-            document.getElementById('clearAllDataBtn')?.addEventListener('click', () => {
-                if (confirm('本当にすべての注文データを削除しますか？この操作は元に戻せません。')) {
-                    saveRoomRecords(activeRoomId, []);
+            // 全削除（管理者用）
+            document.getElementById('clearAllDataBtn')?.addEventListener('click', async () => {
+                if (confirm(`本当に「${activeRoomId}」のすべての注文データを削除しますか？`)) {
+                    await saveRoomRecords(activeRoomId, []);
                     renderRecords([]);
-                    broadcastDataUpdate([]);
                     showToast("すべての注文を削除しました", "fa-trash-can text-rose-400");
                 }
             });
