@@ -303,7 +303,14 @@
                 resolve(null);
                 return;
             }
+
+            // Firebase接続タイムアウト（2秒でローカルモードへフォールバック）
+            const timeout = setTimeout(() => {
+                resolve(null);
+            }, 2000);
+
             onAuthStateChanged(auth, (user) => {
+                clearTimeout(timeout);
                 if (user) {
                     resolve(user);
                 } else {
@@ -336,6 +343,7 @@
             const dot = document.getElementById('syncStatusDot');
             const text = document.getElementById('syncStatusText');
 
+            // クラウド接続試行またはローカル切り替え
             const user = await window.authReadyPromise;
 
             if (!user || !window.firebaseDb) {
@@ -361,7 +369,7 @@
             }, (error) => {
                 console.warn("Firestore error fallback:", error);
                 if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-                if (text) text.textContent = "同期中 (ローカル)";
+                if (text) text.textContent = "同期中 (ローカル/タブ連携)";
                 onDataReceived(getRoomRecords(roomId));
             });
         };
