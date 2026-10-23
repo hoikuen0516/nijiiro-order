@@ -391,6 +391,7 @@
                 }
 
                 import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((firestore) => {
+                    // ルームやデータの一括保存先ドキュメント参照（全ての端末で同一パスを参照）
                     const globalDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'store', 'all_data');
 
                     unsubscribeGlobalListener = firestore.onSnapshot(globalDocRef, (docSnap) => {
