@@ -190,13 +190,13 @@
                 </h2>
                 <span class="text-xs bg-amber-200/60 text-amber-900 px-2.5 py-1 rounded-full font-bold">管理権限オン</span>
             </div>
-            <p class="text-xs text-amber-800">下の「全員の注文状況一覧」で参加者全員の注文・集計を確認・管理できます。</p>
+            <p class="text-xs text-amber-800">下の「全員の注文状況一覧」で全参加者の注文・集計を確認・管理できます。ルームの削除は「ルーム切替・作成」ボタンから行えます。</p>
             <div class="flex flex-wrap gap-2 text-xs font-bold">
                 <button id="exportCsvBtn" class="px-3 py-2 bg-white border border-amber-300 text-amber-800 rounded-xl shadow-sm hover:bg-amber-100 transition-all flex items-center gap-1">
                     <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV出力
                 </button>
                 <button id="clearAllDataBtn" class="px-3 py-2 bg-rose-100 text-rose-700 border border-rose-200 rounded-xl hover:bg-rose-200 transition-all flex items-center gap-1">
-                    <i class="fa-solid fa-trash-can"></i> 全注文削除
+                    <i class="fa-solid fa-trash-can"></i> このルームの全注文削除
                 </button>
             </div>
         </section>
@@ -260,7 +260,7 @@
                 <h3 class="text-base font-black text-slate-800">イベント・注文グループの切替</h3>
                 <button id="closeRoomModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <p class="text-xs text-slate-500">入力者・管理者を問わず、「BBQ用」「誕生日用」など新しいルームを自由に追加作成・移動して過去のデータも閲覧できます。</p>
+            <p class="text-xs text-slate-500">「BBQ用」「誕生日用」などのルームを自由に追加作成・移動できます。管理者モード時はルーム削除が可能です。</p>
             <div class="space-y-2">
                 <label class="block text-xs font-bold text-slate-600">新しいルームを作成または指定</label>
                 <div class="flex gap-2">
@@ -269,11 +269,9 @@
                 </div>
             </div>
             <div class="pt-2 border-t text-xs">
-                <span class="font-bold text-slate-600 block mb-1.5">最近・よく使うルーム:</span>
+                <span class="font-bold text-slate-600 block mb-1.5">登録済みルーム一覧:</span>
                 <div id="recentRoomsContainer" class="flex flex-wrap gap-1.5">
-                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">メイン</button>
-                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">BBQ用</button>
-                    <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">誕生日用</button>
+                    <!-- 動的レンダリング -->
                 </div>
             </div>
         </div>
@@ -346,8 +344,11 @@
         // アプリ状態変数
         let currentMode = 'user'; // 'user' or 'admin'
         let activeRoomId = 'メイン';
-        let currentRoomRecords = [];
-        let unsubscribeRoomListener = null;
+        let globalStore = {
+            rooms: ['メイン', 'BBQ用', '誕生日用'],
+            records: {} // { 'メイン': [...], 'BBQ用': [...] }
+        };
+        let unsubscribeGlobalListener = null;
 
         function setupIcons() {
             const headerLogo = document.getElementById('headerAppLogo');
@@ -363,83 +364,85 @@
             if (touch) touch.href = url;
         }
 
-        // クラウド（Firestore）とのリアルタイム同期監視関数
-        function subscribeRoomData(roomId) {
+        // クラウド（Firestore）との全体一括リアルタイム同期監視関数
+        function subscribeGlobalData() {
             const syncDot = document.getElementById('syncStatusDot');
             const syncText = document.getElementById('syncStatusText');
             
             if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping";
             if (syncText) syncText.textContent = "同期接続中...";
 
-            // 既存のリスナーの解除
-            if (unsubscribeRoomListener) {
-                unsubscribeRoomListener();
-                unsubscribeRoomListener = null;
+            if (unsubscribeGlobalListener) {
+                unsubscribeGlobalListener();
+                unsubscribeGlobalListener = null;
             }
 
             window.firebaseAuthPromise.then(() => {
                 if (!window.db) {
-                    fallbackLocalLoad(roomId);
+                    fallbackLocalLoad();
                     return;
                 }
 
-                try {
-                    const { doc, onSnapshot } = window.firebaseModules || {};
-                    // firebaseModulesのグローバル保持チェック
-                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((firestore) => {
-                        const roomDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((firestore) => {
+                    const globalDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'store', 'all_data');
 
-                        unsubscribeRoomListener = firestore.onSnapshot(roomDocRef, (docSnap) => {
-                            if (docSnap.exists()) {
-                                const data = docSnap.data();
-                                currentRoomRecords = data.records || [];
-                            } else {
-                                currentRoomRecords = [];
-                            }
-                            if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-                            if (syncText) syncText.textContent = "リアルタイム同期中";
-                            renderRecords(currentRoomRecords);
-                        }, (err) => {
-                            console.warn("Firestore snapshot error, fallback active:", err);
-                            fallbackLocalLoad(roomId);
-                        });
-                    }).catch(e => {
-                        fallbackLocalLoad(roomId);
+                    unsubscribeGlobalListener = firestore.onSnapshot(globalDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            globalStore = {
+                                rooms: Array.isArray(data.rooms) && data.rooms.length > 0 ? data.rooms : ['メイン'],
+                                records: data.records || {}
+                            };
+                        } else {
+                            if (!globalStore.rooms.includes('メイン')) globalStore.rooms.push('メイン');
+                        }
+                        if (!globalStore.rooms.includes(activeRoomId)) {
+                            activeRoomId = globalStore.rooms[0] || 'メイン';
+                            const badge = document.getElementById('currentRoomBadge');
+                            if (badge) badge.textContent = activeRoomId;
+                        }
+                        if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                        if (syncText) syncText.textContent = "リアルタイム同期中";
+                        
+                        renderKnownRoomsUI();
+                        renderRecords();
+                    }, (err) => {
+                        console.warn("Firestore snapshot error, fallback active:", err);
+                        fallbackLocalLoad();
                     });
-                } catch(e) {
-                    fallbackLocalLoad(roomId);
-                }
+                }).catch(e => {
+                    fallbackLocalLoad();
+                });
             });
         }
 
-        function fallbackLocalLoad(roomId) {
+        function fallbackLocalLoad() {
             const syncDot = document.getElementById('syncStatusDot');
             const syncText = document.getElementById('syncStatusText');
             if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-blue-500";
             if (syncText) syncText.textContent = "ローカル同期中";
 
             try {
-                const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
-                currentRoomRecords = stored ? JSON.parse(stored) : [];
-            } catch(e) {
-                currentRoomRecords = [];
-            }
-            renderRecords(currentRoomRecords);
+                const stored = localStorage.getItem('nijiiro_global_store');
+                if (stored) {
+                    globalStore = JSON.parse(stored);
+                }
+            } catch(e){}
+            renderKnownRoomsUI();
+            renderRecords();
         }
 
-        async function saveRoomRecords(roomId, records) {
-            currentRoomRecords = records;
-            // ローカルバックアップ保存
+        async function saveGlobalStore() {
             try {
-                localStorage.setItem(`nijiiro_room_${roomId}`, JSON.stringify(records));
+                localStorage.setItem('nijiiro_global_store', JSON.stringify(globalStore));
             } catch(e){}
 
-            // クラウド保存
             try {
                 const firestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                const roomDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
-                await firestore.setDoc(roomDocRef, {
-                    records: records,
+                const globalDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'store', 'all_data');
+                await firestore.setDoc(globalDocRef, {
+                    rooms: globalStore.rooms,
+                    records: globalStore.records,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
             } catch(e) {
@@ -447,56 +450,80 @@
             }
         }
 
-        // 過去・保存されたルーム一覧の保持
-        function getKnownRooms() {
-            try {
-                const stored = localStorage.getItem('nijiiro_known_rooms');
-                const list = stored ? JSON.parse(stored) : ['メイン', 'BBQ用', '誕生日用'];
-                if (!list.includes(activeRoomId)) list.push(activeRoomId);
-                return list;
-            } catch(e) {
-                return ['メイン', 'BBQ用', '誕生日用', activeRoomId];
-            }
-        }
-
-        function addKnownRoom(roomName) {
-            if (!roomName) return;
-            const known = getKnownRooms();
-            if (!known.includes(roomName)) {
-                known.push(roomName);
-                try {
-                    localStorage.setItem('nijiiro_known_rooms', JSON.stringify(known));
-                } catch(e){}
-            }
-            renderKnownRoomsUI();
-        }
-
         function renderKnownRoomsUI() {
             const container = document.getElementById('recentRoomsContainer');
             if (!container) return;
-            const rooms = getKnownRooms();
             container.innerHTML = '';
-            rooms.forEach(r => {
+
+            globalStore.rooms.forEach(r => {
+                const wrapper = document.createElement('div');
+                wrapper.className = "flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1";
+
                 const btn = document.createElement('button');
-                btn.className = `quick-room-btn px-2.5 py-1 rounded-lg font-medium transition-all text-xs ${
-                    r === activeRoomId ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600'
+                btn.className = `font-medium transition-all text-xs ${
+                    r === activeRoomId ? 'text-indigo-600 font-bold' : 'text-slate-700 hover:text-indigo-600'
                 }`;
                 btn.textContent = r;
                 btn.addEventListener('click', () => switchRoom(r));
-                container.appendChild(btn);
+                wrapper.appendChild(btn);
+
+                // 管理者モードの場合のみ、削除ボタンを表示
+                if (currentMode === 'admin') {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = "text-slate-400 hover:text-rose-600 ml-1 p-0.5 text-[10px]";
+                    delBtn.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                    delBtn.title = "このルームを削除";
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteRoom(r);
+                    });
+                    wrapper.appendChild(delBtn);
+                }
+
+                container.appendChild(wrapper);
             });
         }
 
-        function switchRoom(roomName) {
-            if (roomName) {
-                addKnownRoom(roomName);
-                const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
-                window.history.pushState({}, '', newUrl);
-                loadRoomData(roomName);
-                document.getElementById('newRoomNameInput').value = '';
-                document.getElementById('roomSelectModal').classList.add('hidden');
-                showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
+        async function deleteRoom(roomName) {
+            if (globalStore.rooms.length <= 1) {
+                showToast("最後の1つのルームは削除できません", "fa-triangle-exclamation text-amber-400");
+                return;
             }
+
+            if (confirm(`本当にルーム「${roomName}」と含まれる注文データをすべて削除しますか？`)) {
+                globalStore.rooms = globalStore.rooms.filter(r => r !== roomName);
+                delete globalStore.records[roomName];
+
+                if (activeRoomId === roomName) {
+                    activeRoomId = globalStore.rooms[0];
+                    const badge = document.getElementById('currentRoomBadge');
+                    if (badge) badge.textContent = activeRoomId;
+                }
+
+                await saveGlobalStore();
+                renderKnownRoomsUI();
+                renderRecords();
+                showToast(`ルーム「${roomName}」を削除しました`, "fa-trash-can text-rose-400");
+            }
+        }
+
+        function switchRoom(roomName) {
+            if (!roomName) return;
+            if (!globalStore.rooms.includes(roomName)) {
+                globalStore.rooms.push(roomName);
+            }
+            activeRoomId = roomName;
+            const badge = document.getElementById('currentRoomBadge');
+            if (badge) badge.textContent = activeRoomId;
+
+            const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
+            window.history.pushState({}, '', newUrl);
+
+            document.getElementById('newRoomNameInput').value = '';
+            document.getElementById('roomSelectModal').classList.add('hidden');
+            renderKnownRoomsUI();
+            renderRecords();
+            showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
         }
 
         function showToast(msg, iconClass = "fa-circle-check text-emerald-400") {
@@ -546,7 +573,7 @@
             });
         }
 
-        function renderRecords(records) {
+        function renderRecords() {
             const tbody = document.getElementById('recordsTableBody');
             const emptyState = document.getElementById('emptyState');
             const emptyText = document.getElementById('emptyStateText');
@@ -561,9 +588,10 @@
             tbody.innerHTML = '';
             let grandTotal = 0;
 
-            let displayRecords = records || [];
+            const roomRecords = globalStore.records[activeRoomId] || [];
+            let displayRecords = roomRecords;
+
             if (currentMode === 'user') {
-                // 一般モード: 自分が入力したお名前の履歴のみ表示
                 titleIcon.className = "fa-solid fa-clock-rotate-left text-indigo-500";
                 titleText.textContent = `「${activeRoomId}」での自分の注文履歴`;
                 thBuyer.classList.add('hidden');
@@ -574,7 +602,6 @@
                     displayRecords = [];
                 }
             } else {
-                // 管理者モード: 参加者全員の注文一覧を表示
                 titleIcon.className = "fa-solid fa-users text-amber-500";
                 titleText.textContent = `「${activeRoomId}」の全員の注文一覧（管理者用）`;
                 thBuyer.classList.remove('hidden');
@@ -623,9 +650,9 @@
 
                 tr.querySelector('.delete-record-btn').addEventListener('click', async () => {
                     if (confirm('この注文を削除しますか？')) {
-                        const updated = currentRoomRecords.filter(r => r.id !== rec.id);
-                        await saveRoomRecords(activeRoomId, updated);
-                        renderRecords(updated);
+                        globalStore.records[activeRoomId] = (globalStore.records[activeRoomId] || []).filter(r => r.id !== rec.id);
+                        await saveGlobalStore();
+                        renderRecords();
                         showToast("注文を削除しました", "fa-circle-check text-emerald-400");
                     }
                 });
@@ -642,14 +669,6 @@
             })[match]);
         }
 
-        function loadRoomData(roomId) {
-            activeRoomId = roomId;
-            const badge = document.getElementById('currentRoomBadge');
-            if (badge) badge.textContent = roomId;
-
-            subscribeRoomData(roomId);
-        }
-
         function updateModeUI() {
             const label = document.getElementById('modeToggleLabel');
             const adminSec = document.getElementById('adminControlSection');
@@ -661,11 +680,16 @@
                 label.textContent = "一般モード";
                 adminSec.classList.add('hidden');
             }
-            renderRecords(currentRoomRecords);
+            renderKnownRoomsUI();
+            renderRecords();
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) activeRoomId = roomParam;
 
             // 閲覧用パスコード判定 (0516)
             const handlePasscodeSubmit = () => {
@@ -674,9 +698,10 @@
                     document.getElementById('passcodeLockOverlay').classList.add('hidden');
                     document.getElementById('passcodeError').classList.add('hidden');
 
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const roomParam = urlParams.get('room') || activeRoomId;
-                    loadRoomData(roomParam);
+                    const badge = document.getElementById('currentRoomBadge');
+                    if (badge) badge.textContent = activeRoomId;
+
+                    subscribeGlobalData();
                     addNewItemRow();
                 } else {
                     document.getElementById('passcodeError').classList.remove('hidden');
@@ -690,7 +715,7 @@
 
             document.getElementById('buyerInput').addEventListener('input', () => {
                 if (currentMode === 'user') {
-                    renderRecords(currentRoomRecords);
+                    renderRecords();
                 }
             });
 
@@ -732,7 +757,7 @@
             document.getElementById('addRowBtn').addEventListener('click', addNewItemRow);
 
             document.getElementById('forceSyncBtn').addEventListener('click', () => {
-                subscribeRoomData(activeRoomId);
+                subscribeGlobalData();
                 showToast("再接続を試みました", "fa-arrows-rotate text-indigo-400");
             });
 
@@ -764,9 +789,13 @@
 
                 if (newItems.length === 0) return;
 
-                const updatedRecords = [...newItems, ...currentRoomRecords];
-                await saveRoomRecords(activeRoomId, updatedRecords);
-                renderRecords(updatedRecords);
+                if (!globalStore.records[activeRoomId]) {
+                    globalStore.records[activeRoomId] = [];
+                }
+                globalStore.records[activeRoomId] = [...newItems, ...globalStore.records[activeRoomId]];
+
+                await saveGlobalStore();
+                renderRecords();
 
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
@@ -812,12 +841,13 @@
 
             // CSV出力（管理者用）
             document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-                if (currentRoomRecords.length === 0) {
+                const records = globalStore.records[activeRoomId] || [];
+                if (records.length === 0) {
                     showToast("出力するデータがありません", "fa-triangle-exclamation text-amber-400");
                     return;
                 }
                 let csv = "\uFEFF購入者,商品名,単価,数量,小計\n";
-                currentRoomRecords.forEach(r => {
+                records.forEach(r => {
                     csv += `"${r.buyer}","${r.item}",${r.price},${r.qty},${r.price * r.qty}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -830,8 +860,9 @@
             // 全削除（管理者用）
             document.getElementById('clearAllDataBtn')?.addEventListener('click', async () => {
                 if (confirm(`本当に「${activeRoomId}」のすべての注文データを削除しますか？`)) {
-                    await saveRoomRecords(activeRoomId, []);
-                    renderRecords([]);
+                    globalStore.records[activeRoomId] = [];
+                    await saveGlobalStore();
+                    renderRecords();
                     showToast("すべての注文を削除しました", "fa-trash-can text-rose-400");
                 }
             });
