@@ -44,16 +44,8 @@
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             min-height: 100vh;
         }
-        .rainbow-border {
-            border-image: linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7) 1;
-        }
         .rainbow-bg {
             background: linear-gradient(135deg, #ef4444 0%, #f97316 16%, #eab308 33%, #22c55e 50%, #06b6d4 66%, #6366f1 83%, #a855f7 100%);
-        }
-        .rainbow-text {
-            background: linear-gradient(135deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
         }
         .glass-card {
             background: rgba(255, 255, 255, 0.92);
@@ -63,7 +55,7 @@
 </head>
 <body class="text-slate-800 pb-12 antialiased">
 
-    <!-- 閲覧パスコードロック画面 -->
+    <!-- 閲覧パスコードロック画面 (初期設定: 0516) -->
     <div id="passcodeLockOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="glass-card bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-6 border border-white/20">
             <div id="lockAppLogo" class="w-20 h-20 mx-auto flex items-center justify-center"></div>
@@ -93,10 +85,10 @@
                         <span id="currentRoomBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">メイン</span>
                     </h1>
                     <p class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
-                        <span id="syncStatusText">同期確認中...</span>
+                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span id="syncStatusText">接続確認中...</span>
                         <button id="forceSyncBtn" class="ml-1 text-[10px] text-indigo-600 font-bold underline hover:text-indigo-800">
-                            <i class="fa-solid fa-arrows-rotate mr-0.5"></i>再接続
+                            <i class="fa-solid fa-arrows-rotate mr-0.5"></i>更新
                         </button>
                     </p>
                 </div>
@@ -148,7 +140,7 @@
                     </button>
                     <button type="submit" class="flex-1 py-2.5 rainbow-bg text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-1">
                         <i class="fa-solid fa-paper-plane"></i>
-                        <span>注文を確定・同期</span>
+                        <span>注文を送信・共有</span>
                     </button>
                 </div>
             </form>
@@ -210,7 +202,7 @@
         </section>
     </main>
 
-    <!-- 管理者パスコード確認モーダル -->
+    <!-- 管理者パスコード確認モーダル (初期設定: 1234) -->
     <div id="adminAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 border border-white/20">
             <h3 class="text-lg font-black text-slate-800">管理者認証</h3>
@@ -233,16 +225,10 @@
                 <button id="closeRoomModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-600">新規ルーム名</label>
+                <label class="block text-xs font-bold text-slate-600">新規ルームID/名前</label>
                 <div class="flex gap-2">
-                    <input type="text" id="newRoomNameInput" placeholder="例: グッズ共同購入" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
-                    <button id="createNewRoomBtn" class="px-3 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow">作成</button>
-                </div>
-            </div>
-            <div class="space-y-2 pt-2 border-t">
-                <label class="block text-xs font-bold text-slate-600">利用可能なルーム</label>
-                <div id="roomListContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                    <!-- 動的生成 -->
+                    <input type="text" id="newRoomNameInput" placeholder="例: order123" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
+                    <button id="createNewRoomBtn" class="px-3 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow">作成・移動</button>
                 </div>
             </div>
         </div>
@@ -252,7 +238,7 @@
     <div id="shareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="glass-card bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 border border-white/20">
             <h3 class="text-base font-black text-slate-800">グループ共有</h3>
-            <p class="text-xs text-slate-500">このルームの共有リンクを友達に送信してリアルタイムに同期できます</p>
+            <p class="text-xs text-slate-500">このURLをスマホ等に共有すると、同じ画面でリアルタイムに共同入力・閲覧できます</p>
             <div class="bg-slate-100 p-3 rounded-2xl break-all text-xs font-mono select-all border" id="shareUrlText"></div>
             <button id="copyShareUrlBtn" class="w-full py-2.5 rainbow-bg text-white font-bold rounded-xl text-xs shadow hover:opacity-95">
                 <i class="fa-solid fa-copy mr-1"></i> 共有リンクをコピー
@@ -269,20 +255,20 @@
         </div>
     </div>
 
-    <!-- Firebase Standard Imports -->
+    <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rainbow-order-app';
+        // Global Firebase Configuration setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'nijiiro-group-order';
         let firebaseConfig = null;
         if (typeof __firebase_config !== 'undefined') {
             try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
         }
         if (!firebaseConfig) {
-            firebaseConfig = { apiKey: "demo-api-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
+            firebaseConfig = { apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
         }
 
         const app = initializeApp(firebaseConfig);
@@ -293,21 +279,30 @@
         window.firebaseAuth = auth;
         window.appId = appId;
 
-        // Auth initialization
-        (async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+        // Firebase Auth Promise
+        window.authReadyPromise = new Promise((resolve) => {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    resolve(user);
                 } else {
-                    await signInAnonymously(auth);
+                    const initAuth = async () => {
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (e) {
+                            console.warn("Auth init fallback:", e);
+                        }
+                    };
+                    initAuth();
                 }
-            } catch (err) {
-                console.warn("Auth initialization error:", err);
-            }
-        })();
+            });
+        });
 
-        // Firestore Realtime Subscription Helper
-        window.subscribeToRoomRealtime = function(roomId, onDataReceived) {
+        // Realtime Subscription with Firestore
+        window.subscribeToRoomRealtime = async function(roomId, onDataReceived) {
             if (window.unsubscribeRoom) {
                 window.unsubscribeRoom();
                 window.unsubscribeRoom = null;
@@ -316,14 +311,16 @@
             const dot = document.getElementById('syncStatusDot');
             const text = document.getElementById('syncStatusText');
 
-            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) {
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
-                if (text) text.textContent = "ローカル（未同期）";
+            const user = await window.authReadyPromise;
+
+            if (!user || !window.firebaseDb) {
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
+                if (text) text.textContent = "端末内保存";
                 onDataReceived(getRoomRecords(roomId));
                 return;
             }
 
-            const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`);
+            const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`);
 
             if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
             if (text) text.textContent = "リアルタイム同期中";
@@ -333,20 +330,22 @@
                 snapshot.forEach((docSnap) => {
                     fetchedRecords.push(docSnap.data());
                 });
-                fetchedRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                fetchedRecords.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                saveRoomRecords(roomId, fetchedRecords);
                 onDataReceived(fetchedRecords);
             }, (error) => {
-                console.warn("Firestore error, fallback to local:", error);
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
-                if (text) text.textContent = "オフライン表示";
+                console.warn("Firestore error fallback:", error);
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
+                if (text) text.textContent = "オフライン";
                 onDataReceived(getRoomRecords(roomId));
             });
         };
 
         window.saveRecordToCloud = async function(roomId, record) {
-            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return false;
             try {
-                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, record.id);
+                await window.authReadyPromise;
+                if (!window.firebaseDb) return false;
+                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, record.id);
                 await setDoc(docRef, record);
                 return true;
             } catch (e) {
@@ -356,9 +355,10 @@
         };
 
         window.deleteRecordFromCloud = async function(roomId, recordId) {
-            if (!window.firebaseDb || !window.firebaseAuth?.currentUser) return false;
             try {
-                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}_records`, recordId);
+                await window.authReadyPromise;
+                if (!window.firebaseDb) return false;
+                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, recordId);
                 await deleteDoc(docRef);
                 return true;
             } catch (e) {
@@ -369,51 +369,52 @@
     </script>
 
     <script>
-        // --- SVG App Logo Generation (7 Rainbow Hearts + Smiley N Logo) ---
+        // --- 7色ハートと笑顔Nロゴ (添付画像の完全再現SVG) ---
         const rainbowLogoSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full">
-            <g transform="translate(120,32)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#ef4444"/>
+            <g transform="translate(120,30)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#dc2626"/>
             </g>
-            <g transform="translate(182,58)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#f97316"/>
+            <g transform="translate(182,56)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#ea580c"/>
             </g>
             <g transform="translate(195,125)">
                 <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#eab308"/>
             </g>
             <g transform="translate(162,185)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#22c55e"/>
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#15803d"/>
             </g>
             <g transform="translate(78,185)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#06b6d4"/>
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#0284c7"/>
             </g>
             <g transform="translate(45,125)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#6366f1"/>
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#1e3a8a"/>
             </g>
-            <g transform="translate(58,58)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#a855f7"/>
+            <g transform="translate(58,56)">
+                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#6b21a8"/>
             </g>
 
-            <circle cx="120" cy="120" r="54" fill="#ef4444" stroke="#1e293b" stroke-width="6"/>
-            <path d="M 70 120 L 170 120" stroke="#1e293b" stroke-width="28"/>
-            <path d="M 88 88 L 100 70 M 110 88 L 122 70 M 132 88 L 144 70" stroke="#f43f5e" stroke-width="8" stroke-linecap="round"/>
-            <path d="M 120 88 L 132 70" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
-            <path d="M 142 88 L 154 70" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round"/>
-            <text x="120" y="129" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
-            <path d="M 94 148 Q 120 172 146 148" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
-            <line x1="90" y1="148" x2="98" y2="148" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
-            <line x1="142" y1="148" x2="150" y2="148" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="120" cy="120" r="54" fill="#dc2626" stroke="#111827" stroke-width="7"/>
+            <path d="M 68 120 L 172 120" stroke="#111827" stroke-width="32"/>
+            
+            <path d="M 86 86 L 98 68" stroke="#ec4899" stroke-width="9" stroke-linecap="round"/>
+            <path d="M 112 86 L 124 68" stroke="#eab308" stroke-width="9" stroke-linecap="round"/>
+            <path d="M 138 86 L 150 68" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round"/>
+            
+            <text x="120" y="130" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="36" fill="#ffffff" text-anchor="middle">N</text>
+            
+            <path d="M 92 150 Q 120 176 148 150" fill="none" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
+            <line x1="88" y1="150" x2="96" y2="150" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
+            <line x1="144" y1="150" x2="152" y2="150" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
         </svg>
         `;
 
-        // SVG & PNG Icon setup for iOS / PWA
         function setupIcons() {
             const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(rainbowLogoSvg);
             document.getElementById('lockAppLogo').innerHTML = rainbowLogoSvg;
             document.getElementById('headerAppLogo').innerHTML = rainbowLogoSvg;
             document.getElementById('faviconIcon').href = svgUrl;
 
-            // Generate PNG data URI for iOS Apple Touch Icon
             const img = new Image();
             img.src = svgUrl;
             img.onload = () => {
@@ -428,15 +429,13 @@
             };
         }
 
-        // --- Global Application State ---
+        // Passcodes
         const USER_PASSCODE = "0516";
         const ADMIN_PASSCODE = "1234";
 
-        let currentMode = "user"; // "user" or "admin"
+        let currentMode = "user";
         let activeRoomId = "default";
-        let roomRecordsMap = {};
 
-        // Helper storage functions
         function getRoomRecords(roomId) {
             const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
             return stored ? JSON.parse(stored) : [];
@@ -445,7 +444,6 @@
             localStorage.setItem(`nijiiro_room_${roomId}`, JSON.stringify(records));
         }
 
-        // Toast Helper
         function showToast(msg, iconClass = "fa-circle-check text-emerald-400") {
             const toast = document.getElementById('toastNotification');
             const toastMsg = document.getElementById('toastMessage');
@@ -460,7 +458,6 @@
             }, 3000);
         }
 
-        // --- Dynamic Form Row Management ---
         function addNewItemRow() {
             const container = document.getElementById('itemRowsContainer');
             const rowId = 'row_' + Date.now() + Math.random().toString(36).substring(2, 5);
@@ -494,7 +491,6 @@
             });
         }
 
-        // Render Records Table
         function renderRecords(records) {
             const tbody = document.getElementById('recordsTableBody');
             const emptyState = document.getElementById('emptyState');
@@ -540,7 +536,6 @@
                         const current = getRoomRecords(activeRoomId).filter(r => r.id !== rec.id);
                         saveRoomRecords(activeRoomId, current);
                         showToast("注文を削除しました", "fa-circle-check text-emerald-400");
-                        loadRoomData(activeRoomId);
                     }
                 });
 
@@ -556,7 +551,6 @@
             })[match]);
         }
 
-        // Room Data Loading
         function loadRoomData(roomId) {
             activeRoomId = roomId;
             const badge = document.getElementById('currentRoomBadge');
@@ -564,7 +558,6 @@
 
             if (window.subscribeToRoomRealtime) {
                 window.subscribeToRoomRealtime(roomId, (fetchedRecords) => {
-                    saveRoomRecords(roomId, fetchedRecords);
                     renderRecords(fetchedRecords);
                 });
             } else {
@@ -572,7 +565,6 @@
             }
         }
 
-        // Mode Toggling
         function updateModeUI() {
             const label = document.getElementById('modeToggleLabel');
             const adminSec = document.getElementById('adminControlSection');
@@ -586,30 +578,25 @@
             }
         }
 
-        // --- Initialization on Load ---
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
 
-            // Check URL parameters for Room
+            // URLパラメータからルームIDを取得
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
                 activeRoomId = roomParam;
             }
 
-            // Check Passcode Session
             const isAuthed = sessionStorage.getItem('nijiiro_authed');
             if (isAuthed === 'true') {
                 document.getElementById('passcodeLockOverlay').classList.add('hidden');
             }
 
-            // Add Initial Row
             addNewItemRow();
-
-            // Load Initial Data
             loadRoomData(activeRoomId);
 
-            // --- Event Listeners ---
+            // Passcode Authentication
             document.getElementById('submitPasscodeBtn').addEventListener('click', () => {
                 const val = document.getElementById('passcodeInput').value;
                 if (val === USER_PASSCODE) {
@@ -621,6 +608,7 @@
                 }
             });
 
+            // Admin Mode Authentication
             document.getElementById('modeToggleBtn').addEventListener('click', () => {
                 if (currentMode === 'user') {
                     document.getElementById('adminAuthModal').classList.remove('hidden');
@@ -652,10 +640,10 @@
 
             document.getElementById('forceSyncBtn')?.addEventListener('click', () => {
                 loadRoomData(activeRoomId);
-                showToast("再同期を実行しました", "fa-arrows-rotate text-indigo-400");
+                showToast("更新を実行しました", "fa-arrows-rotate text-indigo-400");
             });
 
-            // Handle Form Submission
+            // Multi Purchase Submit Handler
             document.getElementById('multiPurchaseForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const buyer = document.getElementById('buyerInput').value.trim();
@@ -683,25 +671,20 @@
 
                 if (newItems.length === 0) return;
 
-                let savedCloud = false;
                 for (const item of newItems) {
                     if (window.saveRecordToCloud) {
-                        savedCloud = await window.saveRecordToCloud(activeRoomId, item);
+                        await window.saveRecordToCloud(activeRoomId, item);
                     }
                 }
-
-                const existing = getRoomRecords(activeRoomId);
-                saveRoomRecords(activeRoomId, [...newItems, ...existing]);
 
                 // Reset Form
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
 
-                showToast(`${newItems.length}件の注文を登録しました！`, savedCloud ? "fa-circle-check text-emerald-400" : "fa-triangle-exclamation text-amber-400");
-                loadRoomData(activeRoomId);
+                showToast(`${newItems.length}件の注文を送信しました！`, "fa-circle-check text-emerald-400");
             });
 
-            // Share Modal Setup
+            // Share Modal & URL Copy
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
                 const shareUrl = `${window.location.origin}${window.location.pathname}?room=${activeRoomId}`;
                 document.getElementById('shareUrlText').textContent = shareUrl;
@@ -723,7 +706,7 @@
                 showToast("共有リンクをコピーしました！", "fa-copy text-indigo-400");
             });
 
-            // Room Switcher Setup
+            // Room Selector
             document.getElementById('roomSelectBtn').addEventListener('click', () => {
                 document.getElementById('roomSelectModal').classList.remove('hidden');
             });
@@ -734,6 +717,8 @@
             document.getElementById('createNewRoomBtn').addEventListener('click', () => {
                 const roomName = document.getElementById('newRoomNameInput').value.trim();
                 if (roomName) {
+                    const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
+                    window.history.pushState({}, '', newUrl);
                     activeRoomId = roomName;
                     loadRoomData(roomName);
                     document.getElementById('newRoomNameInput').value = '';
