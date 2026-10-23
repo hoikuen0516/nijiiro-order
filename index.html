@@ -1,4 +1,5 @@
-<!DOCTYPng="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -84,8 +85,8 @@
                         <span id="currentRoomBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">メイン</span>
                     </h1>
                     <p class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
-                        <span id="syncStatusText">接続確認中...</span>
+                        <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="syncStatusText">リアルタイム同期中</span>
                         <button id="forceSyncBtn" class="ml-1 text-[10px] text-indigo-600 font-bold underline hover:text-indigo-800">
                             <i class="fa-solid fa-arrows-rotate mr-0.5"></i>更新
                         </button>
@@ -257,10 +258,9 @@
     <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by environment or default fallback
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'nijiiro-group-order';
         let firebaseConfig = null;
         if (typeof __firebase_config !== 'undefined') {
@@ -269,9 +269,7 @@
 
         let db = null;
         let auth = null;
-        let currentUser = null;
 
-        // Firebase初期化と認証
         async function initFirebase() {
             if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "demo-key") {
                 try {
@@ -279,26 +277,21 @@
                     auth = getAuth(app);
                     db = getFirestore(app);
 
-                    // 認証優先処理
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
                         await signInAnonymously(auth);
                     }
-                    currentUser = auth.currentUser;
                 } catch (e) {
                     console.warn("Firebase Auth Init Warning:", e);
                 }
             }
             window.firebaseDb = db;
-            window.firebaseAuth = auth;
             window.appId = appId;
         }
 
-        // 初期化実行
         await initFirebase();
 
-        // BroadcastChannel for Cross-Tab Local Sync fallback
         const localBroadcast = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('nijiiro_sync_channel') : null;
 
         if (localBroadcast) {
@@ -311,7 +304,6 @@
             };
         }
 
-        // リアルタイム同期（クラウド Firestore 優先、不可時は Broadcast 連携）
         window.subscribeToRoomRealtime = function(roomId, onDataReceived) {
             window.onLocalSyncCallback = onDataReceived;
 
@@ -331,7 +323,6 @@
             }
 
             try {
-                // Rule 1に従った正しいコレクションパス: /artifacts/{appId}/public/data/{collectionName}
                 const collectionName = `room_${roomId}`;
                 const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', collectionName);
                 
@@ -340,7 +331,6 @@
                     snapshot.forEach((docSnap) => {
                         fetchedRecords.push(docSnap.data());
                     });
-                    // 作成日時順にソート
                     fetchedRecords.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
                     saveRoomRecords(roomId, fetchedRecords);
                     if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
@@ -359,7 +349,6 @@
             }
         };
 
-        // レコード保存（クラウド＋ローカル）
         window.saveRecordToCloud = async function(roomId, record) {
             if (window.firebaseDb) {
                 try {
@@ -371,7 +360,6 @@
                 }
             }
 
-            // Local storage update & broadcast fallback
             const records = getRoomRecords(roomId);
             records.unshift(record);
             saveRoomRecords(roomId, records);
@@ -380,7 +368,6 @@
             }
         };
 
-        // レコード削除
         window.deleteRecordFromCloud = async function(roomId, recordId) {
             if (window.firebaseDb) {
                 try {
@@ -401,45 +388,30 @@
     </script>
 
     <script>
-        // 7色のハートと可愛いNスマイルロゴ (JavaScript文字列として適切に定義)
+        // 7色のハートとNスマイルロゴ
         const rainbowLogoSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full drop-shadow-md">
-            <!-- 周囲の7色のハート -->
             <g>
-                <!-- 赤 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444" transform="translate(108, 12) scale(1.1)"/>
-                <!-- オレンジ -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#f97316" transform="translate(180, 48) scale(1.1)"/>
-                <!-- 黄 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#eab308" transform="translate(195, 122) scale(1.1)"/>
-                <!-- 緑 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#22c55e" transform="translate(150, 185) scale(1.1)"/>
-                <!-- 水色 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#06b6d4" transform="translate(68, 185) scale(1.1)"/>
-                <!-- 紺 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#1e3a8a" transform="translate(20, 122) scale(1.1)"/>
-                <!-- 紫 -->
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#7e22ce" transform="translate(35, 48) scale(1.1)"/>
             </g>
-
-            <!-- 中央の円形ロゴ -->
             <g transform="translate(120,120)">
                 <circle cx="0" cy="0" r="54" fill="#e53e3e" stroke="#1a202c" stroke-width="8"/>
-
                 <clipPath id="circleClip">
                     <circle cx="0" cy="0" r="50"/>
                 </clipPath>
-
                 <g clip-path="url(#circleClip)">
                     <path d="M-60 -50 L60 -50 L60 -15 L-60 -15 Z" fill="#e53e3e"/>
                     <line x1="-30" y1="-55" x2="-5" y2="-15" stroke="#f687b3" stroke-width="12"/>
                     <line x1="-10" y1="-55" x2="15" y2="-15" stroke="#f6e05e" stroke-width="12"/>
                     <line x1="10" y1="-55" x2="35" y2="-15" stroke="#1a365d" stroke-width="12"/>
-
                     <rect x="-60" y="-18" width="120" height="36" fill="#1a202c"/>
-
                     <text x="0" y="10" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
-
                     <path d="M-24 28 Q0 48 24 28" fill="none" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
                     <line x1="-27" y1="26" x2="-21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
                     <line x1="27" y1="26" x2="21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
@@ -686,7 +658,6 @@
                 showToast("更新を実行しました", "fa-arrows-rotate text-indigo-400");
             });
 
-            // 注文登録フォーム送信処理
             document.getElementById('multiPurchaseForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const buyer = document.getElementById('buyerInput').value.trim();
@@ -720,10 +691,8 @@
                     }
                 }
 
-                // 画面リストの再描画
                 renderRecords(getRoomRecords(activeRoomId));
 
-                // フォーム初期化
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
 
