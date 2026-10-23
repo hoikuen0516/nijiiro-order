@@ -285,9 +285,7 @@
         const ADMIN_PASSCODE = '1234';
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'nijiiro-order-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "dummy", authDomain: "dummy.firebaseapp.com", projectId: "dummy"
-        };
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
         let app, db, auth, dataDocRef;
         let currentMode = 'user';
@@ -317,6 +315,12 @@
 
         // Firebase初期化 ＆ リアルタイムリスナー設定
         async function initCloudSync() {
+            if (!firebaseConfig) {
+                console.warn("Firebase config not available. Running in local fallback mode.");
+                updateSyncStatus(false);
+                return;
+            }
+
             try {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -328,7 +332,7 @@
                     await signInAnonymously(auth);
                 }
 
-                // クラウド保存用ドキュメント参照 (Rule1準拠: artifacts/{appId}/public/data/store/all_data)
+                // クラウド保存用ドキュメント参照 (artifacts/{appId}/public/data/store/all_data)
                 dataDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'store', 'all_data');
 
                 // リアルタイム同期監視 (onSnapshot)
@@ -340,16 +344,25 @@
                                 const parsed = JSON.parse(cloudData.storeData);
                                 if (parsed.rooms) globalStore.rooms = parsed.rooms;
                                 if (parsed.records) globalStore.records = parsed.records;
+                                
+                                // 管理者がアクティブなルームを削除していた場合、デフォルトに退避
+                                if (!globalStore.rooms.includes(activeRoomId)) {
+                                    activeRoomId = globalStore.rooms[0] || 'メイン';
+                                    document.getElementById('currentRoomBadge').textContent = activeRoomId;
+                                }
+
                                 updateSyncStatus(true);
                                 renderKnownRoomsUI();
                                 renderRecords();
-                            } catch(e){}
+                            } catch(e) {
+                                console.error("Data parse error", e);
+                            }
                         }
                     } else {
                         saveToCloud(); // 初回作成
                     }
                 }, (err) => {
-                    console.warn("Firestore Sync Error, using fallback polling", err);
+                    console.warn("Firestore Sync Error", err);
                     updateSyncStatus(false);
                 });
 
@@ -380,7 +393,7 @@
                 el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>クラウド同期中（自動更新）</span>`;
             } else {
                 el.className = "text-[10px] text-amber-600 font-bold flex items-center gap-1 mt-0.5 truncate";
-                el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span><span>ローカル保存中（手動更新可）</span>`;
+                el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span><span>端末内保存モード</span>`;
             }
         }
 
@@ -540,213 +553,4 @@
                         e.stopPropagation();
                         deleteRoom(r);
                     });
-                    wrapper.appendChild(delBtn);
-                }
-
-                container.appendChild(wrapper);
-            });
-        }
-
-        function switchRoom(roomName) {
-            if (!roomName) return;
-            if (!globalStore.rooms.includes(roomName)) {
-                globalStore.rooms.push(roomName);
-            }
-            activeRoomId = roomName;
-            document.getElementById('currentRoomBadge').textContent = activeRoomId;
-            document.getElementById('newRoomNameInput').value = '';
-            document.getElementById('roomSelectModal').classList.add('hidden');
-
-            saveToCloud();
-            renderKnownRoomsUI();
-            renderRecords();
-            showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
-        }
-
-        function deleteRoom(roomName) {
-            if (globalStore.rooms.length <= 1) {
-                showToast("最後の1つのルームは削除できません", "fa-triangle-exclamation text-amber-400");
-                return;
-            }
-
-            if (confirm(`本当にルーム「${roomName}」と含まれる注文データを削除しますか？`)) {
-                globalStore.rooms = globalStore.rooms.filter(r => r !== roomName);
-                delete globalStore.records[roomName];
-
-                if (activeRoomId === roomName) {
-                    activeRoomId = globalStore.rooms[0];
-                    document.getElementById('currentRoomBadge').textContent = activeRoomId;
-                }
-
-                saveToCloud();
-                renderKnownRoomsUI();
-                renderRecords();
-                showToast(`ルーム「${roomName}」を削除しました`, "fa-trash-can text-rose-400");
-            }
-        }
-
-        // イベントリスナー設定
-        window.addEventListener('DOMContentLoaded', async () => {
-            document.getElementById('lockAppLogo').innerHTML = rainbowLogoSvg;
-            document.getElementById('headerAppLogo').innerHTML = rainbowLogoSvg;
-
-            // パスコード認証 (0516)
-            const handlePasscodeSubmit = () => {
-                if (document.getElementById('passcodeInput').value === USER_PASSCODE) {
-                    document.getElementById('passcodeLockOverlay').classList.add('hidden');
-                    document.getElementById('currentRoomBadge').textContent = activeRoomId;
-                    addNewItemRow();
-                    renderKnownRoomsUI();
-                    renderRecords();
-                    initCloudSync();
-                } else {
-                    document.getElementById('passcodeError').classList.remove('hidden');
-                }
-            };
-            document.getElementById('submitPasscodeBtn').addEventListener('click', handlePasscodeSubmit);
-
-            document.getElementById('buyerInput').addEventListener('input', () => {
-                if (currentMode === 'user') renderRecords();
-            });
-
-            // モード切替 (管理者パスコード: 1234)
-            document.getElementById('modeToggleBtn').addEventListener('click', () => {
-                if (currentMode === 'user') {
-                    document.getElementById('adminPassError').classList.add('hidden');
-                    document.getElementById('adminPasscodeInput').value = '';
-                    document.getElementById('adminAuthModal').classList.remove('hidden');
-                } else {
-                    currentMode = 'user';
-                    document.getElementById('modeToggleLabel').textContent = "一般モード";
-                    document.getElementById('adminControlSection').classList.add('hidden');
-                    renderKnownRoomsUI();
-                    renderRecords();
-                    showToast("一般モードに切り替えました", "fa-user text-indigo-400");
-                }
-            });
-
-            document.getElementById('confirmAdminAuthBtn').addEventListener('click', () => {
-                if (document.getElementById('adminPasscodeInput').value === ADMIN_PASSCODE) {
-                    currentMode = 'admin';
-                    document.getElementById('modeToggleLabel').textContent = "管理者モード";
-                    document.getElementById('adminControlSection').classList.remove('hidden');
-                    document.getElementById('adminAuthModal').classList.add('hidden');
-                    renderKnownRoomsUI();
-                    renderRecords();
-                    showToast("管理者モードでログインしました", "fa-user-shield text-amber-400");
-                } else {
-                    document.getElementById('adminPassError').classList.remove('hidden');
-                }
-            });
-
-            document.getElementById('cancelAdminAuthBtn').addEventListener('click', () => {
-                document.getElementById('adminAuthModal').classList.add('hidden');
-            });
-
-            // 注文送信フォーム
-            document.getElementById('addRowBtn').addEventListener('click', addNewItemRow);
-            document.getElementById('multiPurchaseForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const buyer = document.getElementById('buyerInput').value.trim();
-                if (!buyer) return;
-
-                const rows = document.querySelectorAll('.item-row');
-                const newItems = [];
-
-                rows.forEach(row => {
-                    const itemName = row.querySelector('.item-name').value.trim();
-                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                    const qty = parseInt(row.querySelector('.item-qty').value) || 1;
-
-                    if (itemName) {
-                        newItems.push({
-                            id: 'rec_' + Date.now() + Math.random().toString(36).substring(2, 6),
-                            buyer,
-                            item: itemName,
-                            price,
-                            qty,
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                });
-
-                if (newItems.length === 0) return;
-
-                if (!globalStore.records[activeRoomId]) globalStore.records[activeRoomId] = [];
-                globalStore.records[activeRoomId] = [...newItems, ...globalStore.records[activeRoomId]];
-
-                saveToCloud();
-                renderRecords();
-
-                document.getElementById('itemRowsContainer').innerHTML = '';
-                addNewItemRow();
-                showToast(`注文を管理者に自動送信しました！`, "fa-paper-plane text-emerald-400");
-            });
-
-            // ルーム切替ダイアログ
-            document.getElementById('roomSelectBtn').addEventListener('click', () => {
-                renderKnownRoomsUI();
-                document.getElementById('roomSelectModal').classList.remove('hidden');
-            });
-            document.getElementById('closeRoomModalBtn').addEventListener('click', () => {
-                document.getElementById('roomSelectModal').classList.add('hidden');
-            });
-            document.getElementById('createNewRoomBtn').addEventListener('click', () => {
-                const roomName = document.getElementById('newRoomNameInput').value.trim();
-                if (roomName) switchRoom(roomName);
-            });
-
-            // 手動更新 ＆ 共有ボタン
-            document.getElementById('manualSyncBtn').addEventListener('click', () => {
-                getDoc(dataDocRef).then(snapshot => {
-                    if (snapshot.exists()) {
-                        const parsed = JSON.parse(snapshot.data().storeData);
-                        globalStore = parsed;
-                        renderRecords();
-                        showToast("最新データを手動更新しました", "fa-rotate text-indigo-400");
-                    }
-                });
-            });
-
-            document.getElementById('shareUrlBtn').addEventListener('click', () => {
-                const url = window.location.href;
-                const tempInput = document.createElement('textarea');
-                tempInput.value = url;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                showToast("共有URLをコピーしました！LINE等で送信できます", "fa-share-nodes text-indigo-400");
-            });
-
-            // CSV出力
-            document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-                const records = globalStore.records[activeRoomId] || [];
-                if (records.length === 0) {
-                    showToast("出力するデータがありません", "fa-triangle-exclamation text-amber-400");
-                    return;
-                }
-                let csv = "\uFEFF購入者,商品名,単価,数量,小計\n";
-                records.forEach(r => {
-                    csv += `"${r.buyer}","${r.item}",${r.price},${r.qty},${r.price * r.qty}\n`;
-                });
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `虹色オーダー_${activeRoomId}_${new Date().toISOString().slice(0,10)}.csv`;
-                link.click();
-            });
-
-            // ルーム内データ全消去
-            document.getElementById('clearAllDataBtn')?.addEventListener('click', () => {
-                if (confirm(`本当に「${activeRoomId}」のすべての注文データを削除しますか？`)) {
-                    globalStore.records[activeRoomId] = [];
-                    saveToCloud();
-                    renderRecords();
-                    showToast("すべての注文を削除しました", "fa-trash-can text-rose-400");
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+                    wrapper.
