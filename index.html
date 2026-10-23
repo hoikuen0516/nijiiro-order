@@ -545,10 +545,34 @@
                 label.textContent = "一般モード";
                 adminSec.classList.add('hidden');
             }
+            // モード切替に伴い一覧表示を最新化
+            renderRecords(getRoomRecords(activeRoomId));
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
+
+            // --- 閲覧用パスコード判定 (初期設定: 0516) ---
+            const handlePasscodeSubmit = () => {
+                const inputVal = document.getElementById('passcodeInput').value;
+                if (inputVal === USER_PASSCODE) {
+                    document.getElementById('passcodeLockOverlay').classList.add('hidden');
+                    document.getElementById('passcodeError').classList.add('hidden');
+                    // URLからのルーム指定確認
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomParam = urlParams.get('room');
+                    loadRoomData(roomParam || activeRoomId);
+                    addNewItemRow();
+                } else {
+                    document.getElementById('passcodeError').classList.remove('hidden');
+                }
+            };
+
+            document.getElementById('submitPasscodeBtn').addEventListener('click', handlePasscodeSubmit);
+            document.getElementById('passcodeInput').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') handlePasscodeSubmit();
+            });
+
             // お名前入力欄変更時に自分の履歴をリアルタイム絞り込み
             document.getElementById('buyerInput').addEventListener('input', () => {
                 if (currentMode === 'user') {
@@ -557,8 +581,11 @@
                 }
             });
 
+            // --- 管理者モード切り替えハンドラー ---
             document.getElementById('modeToggleBtn').addEventListener('click', () => {
                 if (currentMode === 'user') {
+                    document.getElementById('adminPassError').classList.add('hidden');
+                    document.getElementById('adminPasscodeInput').value = '';
                     document.getElementById('adminAuthModal').classList.remove('hidden');
                 } else {
                     currentMode = 'user';
@@ -567,7 +594,7 @@
                 }
             });
 
-            document.getElementById('confirmAdminAuthBtn').addEventListener('click', () => {
+            const handleAdminAuthSubmit = () => {
                 const val = document.getElementById('adminPasscodeInput').value;
                 if (val === ADMIN_PASSCODE) {
                     currentMode = 'admin';
@@ -578,6 +605,11 @@
                 } else {
                     document.getElementById('adminPassError').classList.remove('hidden');
                 }
+            };
+
+            document.getElementById('confirmAdminAuthBtn').addEventListener('click', handleAdminAuthSubmit);
+            document.getElementById('adminPasscodeInput').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') handleAdminAuthSubmit();
             });
 
             document.getElementById('cancelAdminAuthBtn').addEventListener('click', () => {
@@ -591,6 +623,7 @@
                 showToast("再接続を試みました", "fa-arrows-rotate text-indigo-400");
             });
 
+            // --- 注文登録送信ハンドラー ---
             document.getElementById('multiPurchaseForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const buyer = document.getElementById('buyerInput').value.trim();
@@ -632,6 +665,7 @@
                 showToast(`${newItems.length}件の注文を追加・配信しました！`, "fa-circle-check text-emerald-400");
             });
 
+            // --- 共有モーダル ---
             document.getElementById('shareRoomBtn').addEventListener('click', () => {
                 const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(activeRoomId)}`;
                 document.getElementById('shareUrlText').textContent = shareUrl;
@@ -653,6 +687,7 @@
                 showToast("共有リンクをコピーしました！", "fa-copy text-indigo-400");
             });
 
+            // --- ルーム切り替えモーダル ---
             document.getElementById('roomSelectBtn').addEventListener('click', () => {
                 document.getElementById('roomSelectModal').classList.remove('hidden');
             });
@@ -673,7 +708,7 @@
                 }
             });
 
-            // CSV出力（管理者用）
+            // --- CSV出力（管理者用） ---
             document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
                 const records = getRoomRecords(activeRoomId);
                 if (records.length === 0) {
@@ -691,7 +726,7 @@
                 link.click();
             });
 
-            // 全削除（管理者用）
+            // --- 全削除（管理者用） ---
             document.getElementById('clearAllDataBtn')?.addEventListener('click', () => {
                 if (confirm('本当にすべての注文データを削除しますか？この操作は元に戻せません。')) {
                     saveRoomRecords(activeRoomId, []);
