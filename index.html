@@ -130,16 +130,16 @@
 
             <!-- 右上操作ボタン群 -->
             <div class="flex items-center gap-2">
+                <button id="roomSelectBtn" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all flex items-center gap-1.5 border border-indigo-200">
+                    <i class="fa-solid fa-door-open text-indigo-600"></i>
+                    <span>ルーム切替・作成</span>
+                </button>
                 <button id="modeToggleBtn" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1.5 border border-slate-200">
                     <i class="fa-solid fa-user-gear"></i>
                     <span id="modeToggleLabel">一般モード</span>
                 </button>
                 <button id="shareRoomBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200" title="部屋を共有">
                     <i class="fa-solid fa-share-nodes"></i>
-                </button>
-                <button id="roomSelectBtn" class="p-2 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200 flex items-center gap-1" title="ルーム切替">
-                    <i class="fa-solid fa-door-open text-indigo-500"></i>
-                    <span class="text-xs font-bold hidden sm:inline">ルーム</span>
                 </button>
             </div>
         </div>
@@ -260,17 +260,17 @@
                 <h3 class="text-base font-black text-slate-800">イベント・注文グループの切替</h3>
                 <button id="closeRoomModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <p class="text-xs text-slate-500">「BBQ用」「誕生日用」など目的別のルームを作成・移動できます。</p>
+            <p class="text-xs text-slate-500">入力者・管理者を問わず、「BBQ用」「誕生日用」など新しいルームを自由に追加作成・移動して過去のデータも閲覧できます。</p>
             <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-600">ルーム名（英数字・日本語可）</label>
+                <label class="block text-xs font-bold text-slate-600">新しいルームを作成または指定</label>
                 <div class="flex gap-2">
-                    <input type="text" id="newRoomNameInput" placeholder="例: BBQ用, 誕生日会" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
-                    <button id="createNewRoomBtn" class="px-3 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow">移動</button>
+                    <input type="text" id="newRoomNameInput" placeholder="例: BBQ用, 打ち上げ, 10月度" class="flex-1 px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500">
+                    <button id="createNewRoomBtn" class="px-3.5 py-2 rainbow-bg text-white font-bold rounded-xl text-xs shadow flex-shrink-0">移動 / 作成</button>
                 </div>
             </div>
             <div class="pt-2 border-t text-xs">
-                <span class="font-bold text-slate-600 block mb-1">クイック移動:</span>
-                <div class="flex flex-wrap gap-1.5">
+                <span class="font-bold text-slate-600 block mb-1.5">最近・よく使うルーム:</span>
+                <div id="recentRoomsContainer" class="flex flex-wrap gap-1.5">
                     <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">メイン</button>
                     <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">BBQ用</button>
                     <button class="quick-room-btn px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">誕生日用</button>
@@ -303,122 +303,199 @@
     <!-- アプリ主要ロジック -->
     <script>
         // ロゴ画像SVG定義
-        const rainbowLogoSvg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full drop-shadow-md">
-            <g>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444" transform="translate(108, 12) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#f97316" transform="translate(180, 48) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#eab308" transform="translate(195, 122) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#22c55e" transform="translate(150, 185) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#06b6d4" transform="translate(68, 185) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#1e3a8a" transform="translate(20, 122) scale(1.1)"/>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#7e22ce" transform="translate(35, 48) scale(1.1)"/>
+        const rainbowLogoSvg = `<svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(100,22) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444" transform="translate(-12,-12) scale(1.3)"/>
             </g>
-            <g transform="translate(120,120)">
-                <circle cx="0" cy="0" r="54" fill="#e53e3e" stroke="#1a202c" stroke-width="8"/>
-                <clipPath id="circleClip">
-                    <circle cx="0" cy="0" r="50"/>
-                </clipPath>
-                <g clip-path="url(#circleClip)">
-                    <path d="M-60 -50 L60 -50 L60 -15 L-60 -15 Z" fill="#e53e3e"/>
-                    <line x1="-30" y1="-55" x2="-5" y2="-15" stroke="#f687b3" stroke-width="12"/>
-                    <line x1="-10" y1="-55" x2="15" y2="-15" stroke="#f6e05e" stroke-width="12"/>
-                    <line x1="10" y1="-55" x2="35" y2="-15" stroke="#1a365d" stroke-width="12"/>
-                    <rect x="-60" y="-18" width="120" height="36" fill="#1a202c"/>
-                    <text x="0" y="10" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
-                    <path d="M-24 28 Q0 48 24 28" fill="none" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
-                    <line x1="-27" y1="26" x2="-21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
-                    <line x1="27" y1="26" x2="21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
-                </g>
+            <g transform="translate(155,45) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#f97316" transform="translate(-12,-12) scale(1.3)"/>
             </g>
-        </svg>
-        `;
+            <g transform="translate(178,100) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#eab308" transform="translate(-12,-12) scale(1.3)"/>
+            </g>
+            <g transform="translate(155,155) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#15803d" transform="translate(-12,-12) scale(1.3)"/>
+            </g>
+            <g transform="translate(100,178) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#38bdf8" transform="translate(-12,-12) scale(1.3)"/>
+            </g>
+            <g transform="translate(45,155) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#1e3a8a" transform="translate(-12,-12) scale(1.3)"/>
+            </g>
+            <g transform="translate(22,100) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#7e22ce" transform="translate(-12,-12) scale(1.3)"/>
+            </g>
+            <g transform="translate(100,100)">
+                <circle cx="0" cy="0" r="48" fill="#18181b" stroke="#18181b" stroke-width="4"/>
+                <path d="M-44,0 A44,44 0 0,1 44,0 Z" fill="#dc2626"/>
+                <path d="M-30,-22 L-10,-42 L-2,-42 L-22,-22 Z" fill="#ec4899"/>
+                <path d="M-12,-22 L8,-42 L16,-42 L-4,-22 Z" fill="#facc15"/>
+                <path d="M6,-22 L26,-42 L34,-42 L14,-22 Z" fill="#1e3a8a"/>
+                <rect x="-44" y="-14" width="88" height="28" fill="#18181b"/>
+                <text x="0" y="7" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="30" text-anchor="middle">N</text>
+                <path d="M-22,22 Q0,40 22,22" fill="none" stroke="#18181b" stroke-width="5" stroke-linecap="round"/>
+                <line x1="-24" y1="18" x2="-20" y2="24" stroke="#18181b" stroke-width="4" stroke-linecap="round"/>
+                <line x1="24" y1="18" x2="20" y2="24" stroke="#18181b" stroke-width="4" stroke-linecap="round"/>
+            </g>
+        </svg>`;
 
-        function setupIcons() {
-            const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(rainbowLogoSvg);
-            document.getElementById('lockAppLogo').innerHTML = rainbowLogoSvg;
-            document.getElementById('headerAppLogo').innerHTML = rainbowLogoSvg;
-            document.getElementById('faviconIcon').href = svgUrl;
-        }
+        // パスコード定数
+        const USER_PASSCODE = '0516';
+        const ADMIN_PASSCODE = '1234';
 
-        const USER_PASSCODE = "0516";
-        const ADMIN_PASSCODE = "1234";
-
-        let currentMode = "user";
-        let activeRoomId = "main";
+        // アプリ状態変数
+        let currentMode = 'user'; // 'user' or 'admin'
+        let activeRoomId = 'メイン';
         let currentRoomRecords = [];
         let unsubscribeRoomListener = null;
 
-        // Firebase Firestore & Local Data Synchronization
-        async function subscribeRoomData(roomId) {
-            const dot = document.getElementById('syncStatusDot');
-            const text = document.getElementById('syncStatusText');
+        function setupIcons() {
+            const headerLogo = document.getElementById('headerAppLogo');
+            const lockLogo = document.getElementById('lockAppLogo');
+            if (headerLogo) headerLogo.innerHTML = rainbowLogoSvg;
+            if (lockLogo) lockLogo.innerHTML = rainbowLogoSvg;
 
+            const svgBlob = new Blob([rainbowLogoSvg], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(svgBlob);
+            const fav = document.getElementById('faviconIcon');
+            const touch = document.getElementById('appleTouchIcon');
+            if (fav) fav.href = url;
+            if (touch) touch.href = url;
+        }
+
+        // クラウド（Firestore）とのリアルタイム同期監視関数
+        function subscribeRoomData(roomId) {
+            const syncDot = document.getElementById('syncStatusDot');
+            const syncText = document.getElementById('syncStatusText');
+            
+            if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping";
+            if (syncText) syncText.textContent = "同期接続中...";
+
+            // 既存のリスナーの解除
             if (unsubscribeRoomListener) {
                 unsubscribeRoomListener();
                 unsubscribeRoomListener = null;
             }
 
-            // Local fallback getter
-            const getLocalRecords = () => {
-                try {
-                    const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
-                    return stored ? JSON.parse(stored) : [];
-                } catch(e) { return []; }
-            };
-
-            // Cloud Firestore listener
-            if (window.db && window.firebaseAuthPromise) {
-                await window.firebaseAuthPromise;
-                try {
-                    const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                    const roomRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
-
-                    unsubscribeRoomListener = onSnapshot(roomRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            currentRoomRecords = data.records || [];
-                        } else {
-                            currentRoomRecords = getLocalRecords();
-                        }
-                        renderRecords(currentRoomRecords);
-                        dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-                        text.textContent = "クラウドリアルタイム同期中";
-                    }, (err) => {
-                        console.warn("Firestore snapshot error:", err);
-                        currentRoomRecords = getLocalRecords();
-                        renderRecords(currentRoomRecords);
-                        dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
-                        text.textContent = "ローカルモード（同期制限）";
-                    });
+            window.firebaseAuthPromise.then(() => {
+                if (!window.db) {
+                    fallbackLocalLoad(roomId);
                     return;
-                } catch(e) {
-                    console.warn("Cloud listener init failed:", e);
                 }
-            }
 
-            // Standard fallback
-            currentRoomRecords = getLocalRecords();
+                try {
+                    const { doc, onSnapshot } = window.firebaseModules || {};
+                    // firebaseModulesのグローバル保持チェック
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((firestore) => {
+                        const roomDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
+
+                        unsubscribeRoomListener = firestore.onSnapshot(roomDocRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                const data = docSnap.data();
+                                currentRoomRecords = data.records || [];
+                            } else {
+                                currentRoomRecords = [];
+                            }
+                            if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                            if (syncText) syncText.textContent = "リアルタイム同期中";
+                            renderRecords(currentRoomRecords);
+                        }, (err) => {
+                            console.warn("Firestore snapshot error, fallback active:", err);
+                            fallbackLocalLoad(roomId);
+                        });
+                    }).catch(e => {
+                        fallbackLocalLoad(roomId);
+                    });
+                } catch(e) {
+                    fallbackLocalLoad(roomId);
+                }
+            });
+        }
+
+        function fallbackLocalLoad(roomId) {
+            const syncDot = document.getElementById('syncStatusDot');
+            const syncText = document.getElementById('syncStatusText');
+            if (syncDot) syncDot.className = "inline-block w-2 h-2 rounded-full bg-blue-500";
+            if (syncText) syncText.textContent = "ローカル同期中";
+
+            try {
+                const stored = localStorage.getItem(`nijiiro_room_${roomId}`);
+                currentRoomRecords = stored ? JSON.parse(stored) : [];
+            } catch(e) {
+                currentRoomRecords = [];
+            }
             renderRecords(currentRoomRecords);
-            dot.className = "inline-block w-2 h-2 rounded-full bg-indigo-500";
-            text.textContent = "ローカル同期中";
         }
 
         async function saveRoomRecords(roomId, records) {
             currentRoomRecords = records;
+            // ローカルバックアップ保存
             try {
                 localStorage.setItem(`nijiiro_room_${roomId}`, JSON.stringify(records));
-            } catch(e) {}
+            } catch(e){}
 
-            if (window.db && window.firebaseAuthPromise) {
-                await window.firebaseAuthPromise;
+            // クラウド保存
+            try {
+                const firestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                const roomDocRef = firestore.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
+                await firestore.setDoc(roomDocRef, {
+                    records: records,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch(e) {
+                console.warn("Cloud save fallback:", e);
+            }
+        }
+
+        // 過去・保存されたルーム一覧の保持
+        function getKnownRooms() {
+            try {
+                const stored = localStorage.getItem('nijiiro_known_rooms');
+                const list = stored ? JSON.parse(stored) : ['メイン', 'BBQ用', '誕生日用'];
+                if (!list.includes(activeRoomId)) list.push(activeRoomId);
+                return list;
+            } catch(e) {
+                return ['メイン', 'BBQ用', '誕生日用', activeRoomId];
+            }
+        }
+
+        function addKnownRoom(roomName) {
+            if (!roomName) return;
+            const known = getKnownRooms();
+            if (!known.includes(roomName)) {
+                known.push(roomName);
                 try {
-                    const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                    const roomRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'rooms', roomId);
-                    await setDoc(roomRef, { records: records, updatedAt: new Date().toISOString() }, { merge: true });
-                } catch(e) {
-                    console.warn("Cloud save failed:", e);
-                }
+                    localStorage.setItem('nijiiro_known_rooms', JSON.stringify(known));
+                } catch(e){}
+            }
+            renderKnownRoomsUI();
+        }
+
+        function renderKnownRoomsUI() {
+            const container = document.getElementById('recentRoomsContainer');
+            if (!container) return;
+            const rooms = getKnownRooms();
+            container.innerHTML = '';
+            rooms.forEach(r => {
+                const btn = document.createElement('button');
+                btn.className = `quick-room-btn px-2.5 py-1 rounded-lg font-medium transition-all text-xs ${
+                    r === activeRoomId ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600'
+                }`;
+                btn.textContent = r;
+                btn.addEventListener('click', () => switchRoom(r));
+                container.appendChild(btn);
+            });
+        }
+
+        function switchRoom(roomName) {
+            if (roomName) {
+                addKnownRoom(roomName);
+                const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
+                window.history.pushState({}, '', newUrl);
+                loadRoomData(roomName);
+                document.getElementById('newRoomNameInput').value = '';
+                document.getElementById('roomSelectModal').classList.add('hidden');
+                showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
             }
         }
 
@@ -488,7 +565,7 @@
             if (currentMode === 'user') {
                 // 一般モード: 自分が入力したお名前の履歴のみ表示
                 titleIcon.className = "fa-solid fa-clock-rotate-left text-indigo-500";
-                titleText.textContent = "自分の注文履歴";
+                titleText.textContent = `「${activeRoomId}」での自分の注文履歴`;
                 thBuyer.classList.add('hidden');
 
                 if (currentBuyer) {
@@ -507,7 +584,7 @@
                 emptyState.classList.remove('hidden');
                 if (currentMode === 'user') {
                     emptyText.textContent = currentBuyer 
-                        ? `「${currentBuyer}」さんの注文履歴はありません` 
+                        ? `「${currentBuyer}」さんの「${activeRoomId}」での注文履歴はありません` 
                         : "お名前を入力すると自分の注文履歴が表示されます";
                 } else {
                     emptyText.textContent = `「${activeRoomId}」にはまだ注文が登録されていません`;
@@ -694,7 +771,7 @@
                 document.getElementById('itemRowsContainer').innerHTML = '';
                 addNewItemRow();
 
-                showToast(`${newItems.length}件の注文をクラウドへ登録・共有しました！`, "fa-circle-check text-emerald-400");
+                showToast(`「${activeRoomId}」へ${newItems.length}件の注文を登録・共有しました！`, "fa-circle-check text-emerald-400");
             });
 
             // 共有モーダル
@@ -721,32 +798,16 @@
 
             // ルーム切り替えモーダル
             document.getElementById('roomSelectBtn').addEventListener('click', () => {
+                renderKnownRoomsUI();
                 document.getElementById('roomSelectModal').classList.remove('hidden');
             });
             document.getElementById('closeRoomModalBtn').addEventListener('click', () => {
                 document.getElementById('roomSelectModal').classList.add('hidden');
             });
 
-            const switchRoom = (roomName) => {
-                if (roomName) {
-                    const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
-                    window.history.pushState({}, '', newUrl);
-                    loadRoomData(roomName);
-                    document.getElementById('newRoomNameInput').value = '';
-                    document.getElementById('roomSelectModal').classList.add('hidden');
-                    showToast(`「${roomName}」に切り替えました`, "fa-door-open text-indigo-400");
-                }
-            };
-
             document.getElementById('createNewRoomBtn').addEventListener('click', () => {
                 const roomName = document.getElementById('newRoomNameInput').value.trim();
-                switchRoom(roomName);
-            });
-
-            document.querySelectorAll('.quick-room-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    switchRoom(btn.textContent.trim());
-                });
+                if (roomName) switchRoom(roomName);
             });
 
             // CSV出力（管理者用）
