@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!DOCTYPng="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -267,20 +266,43 @@
         if (typeof __firebase_config !== 'undefined') {
             try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
         }
-        if (!firebaseConfig) {
-            firebaseConfig = { apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project" };
-        }
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db = null;
+        let auth = null;
+
+        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "demo-key") {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } catch (e) {
+                console.warn("Firebase init failed:", e);
+            }
+        }
 
         window.firebaseDb = db;
         window.firebaseAuth = auth;
         window.appId = appId;
 
+        // BroadcastChannel for Tab-to-Tab Local Sync when Firebase is offline/not configured
+        const localBroadcast = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('nijiiro_sync_channel') : null;
+
+        if (localBroadcast) {
+            localBroadcast.onmessage = (event) => {
+                if (event.data && event.data.roomId === window.activeRoomId) {
+                    if (window.onLocalSyncCallback) {
+                        window.onLocalSyncCallback(getRoomRecords(window.activeRoomId));
+                    }
+                }
+            };
+        }
+
         // Firebase Auth Promise
         window.authReadyPromise = new Promise((resolve) => {
+            if (!auth) {
+                resolve(null);
+                return;
+            }
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     resolve(user);
@@ -294,6 +316,7 @@
                             }
                         } catch (e) {
                             console.warn("Auth init fallback:", e);
+                            resolve(null);
                         }
                     };
                     initAuth();
@@ -301,8 +324,10 @@
             });
         });
 
-        // Realtime Subscription with Firestore
+        // Realtime Subscription with Firestore & Local Sync Fallback
         window.subscribeToRoomRealtime = async function(roomId, onDataReceived) {
+            window.onLocalSyncCallback = onDataReceived;
+
             if (window.unsubscribeRoom) {
                 window.unsubscribeRoom();
                 window.unsubscribeRoom = null;
@@ -314,8 +339,8 @@
             const user = await window.authReadyPromise;
 
             if (!user || !window.firebaseDb) {
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
-                if (text) text.textContent = "端末内保存";
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                if (text) text.textContent = "リアルタイム同期中 (ローカル/タブ連携)";
                 onDataReceived(getRoomRecords(roomId));
                 return;
             }
@@ -323,7 +348,7 @@
             const colRef = collection(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`);
 
             if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-            if (text) text.textContent = "リアルタイム同期中";
+            if (text) text.textContent = "クラウドリアルタイム同期中";
 
             window.unsubscribeRoom = onSnapshot(colRef, (snapshot) => {
                 const fetchedRecords = [];
@@ -335,77 +360,121 @@
                 onDataReceived(fetchedRecords);
             }, (error) => {
                 console.warn("Firestore error fallback:", error);
-                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
-                if (text) text.textContent = "オフライン";
+                if (dot) dot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                if (text) text.textContent = "同期中 (ローカル)";
                 onDataReceived(getRoomRecords(roomId));
             });
         };
 
         window.saveRecordToCloud = async function(roomId, record) {
+            let savedCloud = false;
             try {
                 await window.authReadyPromise;
-                if (!window.firebaseDb) return false;
-                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, record.id);
-                await setDoc(docRef, record);
-                return true;
+                if (window.firebaseDb) {
+                    const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, record.id);
+                    await setDoc(docRef, record);
+                    savedCloud = true;
+                }
             } catch (e) {
                 console.error("Cloud save failed:", e);
-                return false;
             }
+
+            // Local storage update & broadcast
+            const records = getRoomRecords(roomId);
+            records.unshift(record);
+            saveRoomRecords(roomId, records);
+            if (localBroadcast) {
+                localBroadcast.postMessage({ type: 'UPDATE', roomId });
+            }
+            return savedCloud;
         };
 
         window.deleteRecordFromCloud = async function(roomId, recordId) {
+            let deletedCloud = false;
             try {
                 await window.authReadyPromise;
-                if (!window.firebaseDb) return false;
-                const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, recordId);
-                await deleteDoc(docRef);
-                return true;
+                if (window.firebaseDb) {
+                    const docRef = doc(window.firebaseDb, 'artifacts', window.appId, 'public', 'data', `room_${roomId}`, recordId);
+                    await deleteDoc(docRef);
+                    deletedCloud = true;
+                }
             } catch (e) {
                 console.error("Cloud delete failed:", e);
-                return false;
             }
+
+            // Local storage update & broadcast
+            const records = getRoomRecords(roomId).filter(r => r.id !== recordId);
+            saveRoomRecords(roomId, records);
+            if (localBroadcast) {
+                localBroadcast.postMessage({ type: 'DELETE', roomId });
+            }
+            return deletedCloud;
         };
     </script>
 
     <script>
-        // --- 7色ハートと笑顔Nロゴ (添付画像の完全再現SVG) ---
+        // --- 7色のハートと画像通りの可愛いスマイルNロゴ (完璧なSVG再現) ---
         const rainbowLogoSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" class="w-full h-full">
-            <g transform="translate(120,30)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#dc2626"/>
+            <!-- 7つのカラフルなハート (上から時計回り: 赤, 橙, 黄, 緑, 水色, 紺, 紫) -->
+            <!-- 1. トップ (赤) -->
+            <g transform="translate(120, 26) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e53e3e"/>
             </g>
-            <g transform="translate(182,56)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#ea580c"/>
+            <!-- 2. 右上 (橙) -->
+            <g transform="translate(182, 52) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ed8936"/>
             </g>
-            <g transform="translate(195,125)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#eab308"/>
+            <!-- 3. 右下 (黄) -->
+            <g transform="translate(192, 122) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ecc94b"/>
             </g>
-            <g transform="translate(162,185)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#15803d"/>
+            <!-- 4. 真下右 (緑) -->
+            <g transform="translate(162, 186) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#38a169"/>
             </g>
-            <g transform="translate(78,185)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#0284c7"/>
+            <!-- 5. 真下左 (水色) -->
+            <g transform="translate(78, 186) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#4299e1"/>
             </g>
-            <g transform="translate(45,125)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#1e3a8a"/>
+            <!-- 6. 左下 (紺) -->
+            <g transform="translate(48, 122) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#2b6cb0"/>
             </g>
-            <g transform="translate(58,56)">
-                <path d="M0 -12 C -6 -20, -18 -15, -18 -5 C -18 8, 0 18, 0 20 C 0 18, 18 8, 18 -5 C 18 -15, 6 -20, 0 -12 Z" fill="#6b21a8"/>
+            <!-- 7. 左上 (紫) -->
+            <g transform="translate(58, 52) scale(0.65)">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#805ad5"/>
             </g>
 
-            <circle cx="120" cy="120" r="54" fill="#dc2626" stroke="#111827" stroke-width="7"/>
-            <path d="M 68 120 L 172 120" stroke="#111827" stroke-width="32"/>
-            
-            <path d="M 86 86 L 98 68" stroke="#ec4899" stroke-width="9" stroke-linecap="round"/>
-            <path d="M 112 86 L 124 68" stroke="#eab308" stroke-width="9" stroke-linecap="round"/>
-            <path d="M 138 86 L 150 68" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round"/>
-            
-            <text x="120" y="130" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="36" fill="#ffffff" text-anchor="middle">N</text>
-            
-            <path d="M 92 150 Q 120 176 148 150" fill="none" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
-            <line x1="88" y1="150" x2="96" y2="150" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
-            <line x1="144" y1="150" x2="152" y2="150" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
+            <!-- 中央メインアイコン（黒フチ付きの丸型スマイル） -->
+            <g transform="translate(120,120)">
+                <!-- 外枠黒ライン -->
+                <circle cx="0" cy="0" r="54" fill="#e53e3e" stroke="#1a202c" stroke-width="8"/>
+
+                <!-- Clip Path for Top Stripes -->
+                <clipPath id="circleClip">
+                    <circle cx="0" cy="0" r="50"/>
+                </clipPath>
+
+                <g clip-path="url(#circleClip)">
+                    <!-- 上部斜線ストライプ (ピンク, 黄, 紺) -->
+                    <path d="M-60 -50 L60 -50 L60 -15 L-60 -15 Z" fill="#e53e3e"/>
+                    <line x1="-30" y1="-55" x2="-5" y2="-15" stroke="#f687b3" stroke-width="12"/>
+                    <line x1="-10" y1="-55" x2="15" y2="-15" stroke="#f6e05e" stroke-width="12"/>
+                    <line x1="10" y1="-55" x2="35" y2="-15" stroke="#1a365d" stroke-width="12"/>
+
+                    <!-- 中央黒帯 -->
+                    <rect x="-60" y="-18" width="120" height="36" fill="#1a202c"/>
+
+                    <!-- 白文字 N -->
+                    <text x="0" y="10" font-family="'Inter', sans-serif" font-weight="900" font-style="italic" font-size="34" fill="#ffffff" text-anchor="middle">N</text>
+
+                    <!-- 下部スマイル口元 -->
+                    <path d="M-24 28 Q0 48 24 28" fill="none" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
+                    <line x1="-27" y1="26" x2="-21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
+                    <line x1="27" y1="26" x2="21" y2="30" stroke="#1a202c" stroke-width="6" stroke-linecap="round"/>
+                </g>
+            </g>
         </svg>
         `;
 
@@ -581,12 +650,20 @@
         window.addEventListener('DOMContentLoaded', () => {
             setupIcons();
 
+            // LocalStorage Cross-Tab Listeners
+            window.addEventListener('storage', (e) => {
+                if (e.key === `nijiiro_room_${window.activeRoomId}`) {
+                    renderRecords(getRoomRecords(window.activeRoomId));
+                }
+            });
+
             // URLパラメータからルームIDを取得
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
                 activeRoomId = roomParam;
             }
+            window.activeRoomId = activeRoomId;
 
             const isAuthed = sessionStorage.getItem('nijiiro_authed');
             if (isAuthed === 'true') {
@@ -720,6 +797,7 @@
                     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}`;
                     window.history.pushState({}, '', newUrl);
                     activeRoomId = roomName;
+                    window.activeRoomId = roomName;
                     loadRoomData(roomName);
                     document.getElementById('newRoomNameInput').value = '';
                     document.getElementById('roomSelectModal').classList.add('hidden');
